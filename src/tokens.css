@@ -1,0 +1,4 @@
+/* Alias. The tokens live in ./styles/tokens.css — DESIGN §9 calls this path
+   `src/tokens.css`, the build plan calls it `src/styles/tokens.css`. Both
+   resolve, so no package can import the wrong one. */
+@import './styles/tokens.css';

@@ -1,0 +1,193 @@
+/**
+ * Every string on the four screens, verbatim from DESIGN §4 (both languages).
+ * WP0 owns this file; packages read keys, they do not add copy of their own —
+ * new copy comes back through the design of record.
+ */
+import { registerStrings } from './index';
+
+/* ------------------------------------------------------------ §4.1 Library */
+
+registerStrings('library', {
+  en: {
+    'title': 'Library',
+    'lede': 'Try pressing any timecode.',
+    'emptyTitle': 'Nothing here yet.',
+    'emptyBody': 'Bring a recording, or bring the sample back.',
+    'cardStatus': '{notes} notes · {heard} heard',
+    'cardListening': 'Heard {done} of {total} min',
+    'readFailed': `I couldn't open your saved interviews on this device. Nothing was deleted.`,
+  },
+  'zh-CN': {
+    'title': '资料库',
+    'lede': '试着点任意一个时间码。',
+    'emptyTitle': '这里还没有东西。',
+    'emptyBody': '带一段录音进来，或者把示例请回来。',
+    'cardStatus': '{notes} 条笔记 · 已听证 {heard} 条',
+    'cardListening': '已听 {done} / {total} 分钟',
+    'readFailed': '打不开这台设备上保存的访谈。什么都没有被删除。',
+  },
+});
+
+/* ---------------------------------------------------------- §4.2 Interview */
+
+registerStrings('interview', {
+  en: {
+    'title': 'Interview',
+    'tabNotes': 'Notes',
+    'tabTranscript': 'Transcript',
+    'tabNotesCount': 'Notes {n}',
+    'sectionPoints': 'Points',
+    'sectionQuotable': 'Quotable',
+    'sectionYours': 'Yours',
+    'heard': 'heard',
+    'contextStrip': '{duration} · heard {date} · {lang}',
+    'selectHint': 'Select any words in the transcript to save your own quote.',
+    'firstRun': 'This is a real interview. Press any timecode.',
+    'unpinned': `Couldn't pin this to the tape — nearest place shown.`,
+    'notHeardTitle': `This one hasn't been heard yet.`,
+    'audioMissing': `The recording isn't on this device.`,
+    'wrongFile': `That doesn't seem to be the same recording — it's {found}, this one was {expected}.`,
+    'gapTitle': `Couldn't hear minutes {from}–{to}.`,
+    'listening': 'Listening… {done} of {total} min',
+    'notesPending': 'Notes come once the whole recording has been heard.',
+    'readingBack': 'Reading it back…',
+    'heardOfMin': 'heard {done} of {total} min',
+    'nudge': 'Nudge',
+    'speed': 'Speed',
+    'deleteConfirm': 'Delete this interview and its notes? The recording goes too.',
+  },
+  'zh-CN': {
+    'title': '访谈',
+    'tabNotes': '笔记',
+    'tabTranscript': '原文',
+    'tabNotesCount': '笔记 {n}',
+    'sectionPoints': '要点',
+    'sectionQuotable': '可引用',
+    'sectionYours': '你的',
+    'heard': '已听证',
+    'contextStrip': '{duration} · {date} 听过 · {lang}',
+    'selectHint': '在原文里选中任意几句，存成你自己的引文。',
+    'firstRun': '这是一段真实的访谈。点任意一个时间码。',
+    'unpinned': '没能钉到录音上——这是最接近的位置。',
+    'notHeardTitle': '这一段还没有被听过。',
+    'audioMissing': '录音不在这台设备上。',
+    'wrongFile': '好像不是同一段录音——它是 {found}，这一段是 {expected}。',
+    'gapTitle': '{from}–{to} 分钟没有听清。',
+    'listening': '正在听… {done} / {total} 分钟',
+    'notesPending': '整段听完之后，笔记才会出现。',
+    'readingBack': '正在读一遍…',
+    'heardOfMin': '已听 {done} / {total} 分钟',
+    'nudge': '微调',
+    'speed': '速度',
+    'deleteConfirm': '删除这段访谈和它的笔记？录音也会一起删掉。',
+  },
+});
+
+/* -------------------------------------------------------------- §4.3 Bring */
+
+registerStrings('bring', {
+  en: {
+    'title': 'Bring a recording',
+    'choose': 'Choose a recording',
+    'dropHint': 'or drop it here',
+    'fieldTitle': 'Title',
+    'fieldLanguage': 'Language',
+    'keepAudio': 'Keep the recording on this device',
+    'keepAudioWhy': 'Needed to play back what you press. Stays in your browser.',
+    'keyLabel': 'Transcription key',
+    'keyWhy': 'Stored only in this browser. Sent only to the provider you pick.',
+    'estimate': 'About 3–5 minutes for a 92-minute recording. You can start reading as it goes.',
+    'tooBigMobile': 'This file is {size}. On this phone I can hear recordings up to 25 MB; on a laptop, up to about 3 hours.',
+    'tooLong': `That's longer than 3 hours. Split it first — Heard is built for interviews.`,
+    'keyRefused': 'The key was refused by {provider}.',
+    'offline': `You're offline. Existing interviews still play; new ones need a connection to be heard.`,
+    'unsupported': `I can't read that kind of file. Try mp3, m4a, wav or mp4.`,
+  },
+  'zh-CN': {
+    'title': '带一段录音进来',
+    'choose': '选择一段录音',
+    'dropHint': '或者拖到这里',
+    'fieldTitle': '标题',
+    'fieldLanguage': '语言',
+    'keepAudio': '把录音留在这台设备上',
+    'keepAudioWhy': '用来回放你点的那一秒。只留在你的浏览器里。',
+    'keyLabel': '转写密钥',
+    'keyWhy': '只存在这个浏览器里，只发给你选的服务方。',
+    'estimate': '92 分钟的录音大约要 3–5 分钟。可以边听边读。',
+    'tooBigMobile': '这个文件 {size}。在手机上我最多能听 25 MB 的录音；在电脑上大约能到 3 小时。',
+    'tooLong': '超过 3 小时了。先分一下——听证是为访谈做的。',
+    'keyRefused': '{provider} 拒绝了这个密钥。',
+    'offline': '现在离线。已有的访谈可以照常播放；新的需要联网才能听。',
+    'unsupported': '这种文件我读不了。试试 mp3、m4a、wav 或 mp4。',
+  },
+});
+
+/* ----------------------------------------------------------- §4.4 Settings */
+
+registerStrings('settings', {
+  en: {
+    'title': 'Settings',
+    'transcription': 'Transcription',
+    'notes': 'Notes',
+    'notesWhy': 'Notes are written by a text model reading the transcript. It never hears the audio.',
+    'provider': 'Provider',
+    'baseUrl': 'Base URL',
+    'key': 'Key',
+    'model': 'Model',
+    'language': 'Language',
+    'theme': 'Theme',
+    'themeSystem': 'System',
+    'themePaper': 'Paper',
+    'themeInk': 'Ink',
+    'storage': 'Storage',
+    'storageLine': 'This device holds {count} interviews · {size}',
+    'storageDegraded': `This browser wouldn't give me its database, so everything is in smaller storage instead. Recordings may not survive.`,
+    'about': 'About',
+    'aboutLine': 'Everything stays in your browser.',
+    'github': 'Source on GitHub',
+    'testOk': 'OK, {seconds} s',
+    'testFail': '{status} · {message}',
+    'testRunning': 'Testing…',
+  },
+  'zh-CN': {
+    'title': '设置',
+    'transcription': '转写',
+    'notes': '笔记',
+    'notesWhy': '笔记由文本模型读原文写成，它听不到音频。',
+    'provider': '服务方',
+    'baseUrl': '接口地址',
+    'key': '密钥',
+    'model': '模型',
+    'language': '语言',
+    'theme': '主题',
+    'themeSystem': '跟随系统',
+    'themePaper': '纸',
+    'themeInk': '墨',
+    'storage': '存储',
+    'storageLine': '这台设备上有 {count} 段访谈 · {size}',
+    'storageDegraded': '这个浏览器不让我用数据库，所以只能用更小的存储。录音可能保不住。',
+    'about': '关于',
+    'aboutLine': '所有内容都留在你的浏览器里。',
+    'github': 'GitHub 源码',
+    'testOk': '正常，{seconds} 秒',
+    'testFail': '{status} · {message}',
+    'testRunning': '正在测试…',
+  },
+});
+
+/* ------------------------------------------------------------- §4.5 Export */
+
+registerStrings('exportSheet', {
+  en: {
+    'title': 'Quote sheet',
+    'subtitle': 'Recorded {date} · {duration} · {filename} · transcribed with Heard',
+    'notChecked': '(not yet checked)',
+    'empty': 'Nothing to export yet — the notes come once the recording has been heard.',
+  },
+  'zh-CN': {
+    'title': '引文清单',
+    'subtitle': '录制于 {date} · {duration} · {filename} · 由听证转写',
+    'notChecked': '（尚未核听）',
+    'empty': '还没有可以导出的东西——整段听完之后笔记才会出现。',
+  },
+});

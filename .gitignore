@@ -1,0 +1,9 @@
+node_modules/
+dist/
+artifacts/
+*.tsbuildinfo
+*.log
+verify-shots/
+shot-*.png
+.tmp-*/
+.DS_Store

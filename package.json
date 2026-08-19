@@ -1,0 +1,32 @@
+{
+  "name": "heard",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && node verify-i18n.mjs && node verify-tokens.mjs && node verify-router.mjs && node verify-contracts.mjs && node verify-pwa.mjs && vite build && node build-sw.mjs",
+    "preview": "vite preview --host",
+    "start": "vite --port 4173 --host",
+    "verify:i18n": "node verify-i18n.mjs",
+    "verify:tokens": "node verify-tokens.mjs",
+    "verify:router": "node verify-router.mjs",
+    "verify:contracts": "node verify-contracts.mjs",
+    "verify:pwa": "node verify-pwa.mjs",
+    "icons": "node make-icons.mjs"
+  },
+  "dependencies": {
+    "idb-keyval": "^6.2.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.3"
+  }
+}

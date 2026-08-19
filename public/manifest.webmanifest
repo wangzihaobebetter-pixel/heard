@@ -1,0 +1,21 @@
+{
+  "name": "Heard · 听证",
+  "short_name": "Heard",
+  "description": "Notes that can prove themselves. Drop in an interview; press any line and hear the second it was said. Everything stays in your browser.",
+  "lang": "en",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#F6F4EF",
+  "theme_color": "#F6F4EF",
+  "categories": ["productivity", "news", "utilities"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,182 @@
+/* ============================================================
+   Heard / 听证 — design tokens
+   Authority: memory/traceable-notes/DESIGN.md §7. WP0 owns this file.
+
+   TOKEN LAYER ONLY. Screens inherit; nobody restyles a screen with literal
+   hex. If a value is not here, it does not exist.
+
+   Character (§7): paper and ink; ONE accent, the colour of a tape recorder's
+   red-orange, used only for two things — the thing that is playing, and the
+   anchor being pressed. Nothing gradient, nothing glass, no illustration.
+
+   No red for errors. No green for success. ✓ heard is ink.
+   ============================================================ */
+
+:root,
+:root[data-theme='paper'] {
+  /* --- Surfaces --- */
+  --bg: #F6F4EF;
+  --surface: #FFFFFF;
+  --surface-2: #EFECE5;      /* chips, sheet */
+
+  /* --- Ink --- */
+  --ink: #1B1A17;
+  --ink-2: #5F5B52;          /* secondary */
+  --ink-3: #8B867B;          /* muted / micro */
+  --hairline: #E3DFD6;
+
+  /* --- The one accent --- */
+  --anchor: #B8410F;
+  --anchor-ink: #FFFFFF;     /* text on accent */
+
+  /* --- Karaoke --- */
+  --wash: #FBE3D0;           /* the word being spoken */
+  --wash-2: #F7EEE3;         /* already spoken, inside the span */
+
+  /* --- State --- */
+  --heard: var(--ink);       /* ✓ fill — ink, never green */
+  --focus: var(--anchor);
+
+  /* Errors are ink on surface-2 with an accent hairline. There is no --danger. */
+  --error-bg: var(--surface-2);
+  --error-ink: var(--ink);
+  --error-rule: var(--anchor);
+
+  --shadow-player: 0 -1px 0 var(--hairline), 0 -8px 24px rgba(0, 0, 0, 0.06);
+  color-scheme: light;
+}
+
+:root[data-theme='ink'] {
+  --bg: #131210;
+  --surface: #1C1A17;
+  --surface-2: #242220;
+
+  --ink: #ECE8DF;
+  --ink-2: #B0AA9E;
+  --ink-3: #7E7A70;
+  --hairline: #2C2A26;
+
+  --anchor: #F0894C;
+  --anchor-ink: #1B1A17;
+
+  --wash: rgba(240, 137, 76, 0.22);
+  --wash-2: rgba(240, 137, 76, 0.10);
+
+  --heard: var(--ink);
+  --focus: var(--anchor);
+
+  --error-bg: var(--surface-2);
+  --error-ink: var(--ink);
+  --error-rule: var(--anchor);
+
+  --shadow-player: 0 -1px 0 var(--hairline), 0 -8px 24px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+
+:root {
+  /* ---------------------------------------------------------- typography
+     System stack only — no webfont download, and CJK has to look native.  */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               'PingFang SC', 'Noto Sans CJK SC', 'Hiragino Sans GB',
+               'Microsoft YaHei', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* screen titles */
+  --size-display: 28px;
+  --lh-display: 34px;
+  /* interview title, sheet titles */
+  --size-title: 20px;
+  --lh-title: 26px;
+  /* transcript, note text — CJK gets the looser leading */
+  --size-body: 16px;
+  --lh-body: 26px;
+  --lh-body-cjk: 28px;
+  /* quotes under notes, the context strip */
+  --size-secondary: 14px;
+  --lh-secondary: 20px;
+  /* section labels — never uppercase-transform user content */
+  --size-micro: 12px;
+  --lh-micro: 16px;
+  --tracking-micro: 0.01em;
+  --size-timecode: 13px;                        /* mono, medium, tabular */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* Transcript measure (§7). */
+  --measure-transcript: 68ch;
+
+  /* ------------------------------------------------------------- spacing
+     4 px base. Component gaps 8/12/16. Screen gutters 16 / 24.          */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --gutter: var(--space-4);
+  --gutter-desktop: var(--space-6);
+
+  --row-pad-y: 12px;              /* note rows */
+  --paragraph-gap: 20px;          /* transcript paragraphs */
+  --touch-min: 44px;              /* every hit area */
+
+  /* --------------------------------------------------------------- radii */
+  --radius-chip: 6px;
+  --radius-card: 12px;
+  --radius-sheet: 16px;
+
+  /* ------------------------------------------------------- chrome heights */
+  --appbar-h: 56px;
+  --player-bar-h: 72px;           /* desktop */
+  --player-sheet-collapsed: 88px; /* mobile */
+  --player-sheet-mid: 42vh;
+
+  /* --------------------------------------------- timecode chip anatomy §5 */
+  --chip-h: 28px;
+  --chip-pad-x: 8px;
+  --chip-radius: var(--radius-chip);
+  --chip-border: 1px solid var(--hairline);
+  --chip-border-hover: 1px solid var(--ink);
+  --chip-border-approx: 1px dotted var(--ink-3);   /* ≈ — could not pin exactly */
+  --chip-border-dashed: 1px dashed var(--ink-3);   /* the recording is not on this device */
+  --chip-font: var(--weight-medium) var(--size-timecode) / 1 var(--font-mono);
+  --chip-grow-hover: 14px;                          /* the play triangle fades in */
+
+  --focus-ring: 2px solid var(--focus);
+  --focus-offset: 2px;
+
+  /* --------------------------------------------------- layout breakpoints */
+  --bp-desktop: 960px;
+  --col-notes: 40%;
+  --col-transcript: 60%;
+  --col-notes-min: 360px;
+
+  /* ------------------------------------------------------------- motion §7
+     No springs, no bounce — this is a document tool. The karaoke highlight
+     has NO transition on purpose: smoothing it makes it feel late.        */
+  --dur-state: 120ms;    /* chip fill, toggle */
+  --dur-settle: 200ms;   /* row settle, pill in/out */
+  --dur-scroll: 280ms;   /* scroll-to-span, sheet height */
+  --dur-fade: 240ms;     /* notes fade-in */
+  --ease-move: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-fade: ease-out;
+
+  /* Playback timings the UI needs to reference (mirrors store/presets.ts). */
+  --pre-roll: 1s;
+  --pre-roll-approx: 2.5s;
+  --post-roll: 0.8s;
+  --row-afterglow: 1.6s;
+  --heard-invite: 3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    /* Scrolls become instant; fades stay (§7 motion policy). */
+    --dur-scroll: 0ms;
+    --ease-move: linear;
+  }
+}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#F6F4EF" />
+    <meta name="description" content="Notes that can prove themselves. Press any line — hear the second it was said." />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Heard" />
+    <title>Heard · 听证</title>
+    <script>
+      /* Theme and language pre-paint, so the first frame is already correct
+         (DESIGN §7: "Theme is decided pre-paint from a localStorage slice"). */
+      (function () {
+        try {
+          var ui = JSON.parse(localStorage.getItem('heard-ui') || '{}');
+          var theme = ui.theme || 'system';
+          var resolved = theme === 'system'
+            ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'ink' : 'paper')
+            : theme;
+          document.documentElement.dataset.theme = resolved;
+          document.querySelector('meta[name="theme-color"]')
+            .setAttribute('content', resolved === 'ink' ? '#131210' : '#F6F4EF');
+          var lang = ui.lang || (navigator.language || 'en');
+          document.documentElement.lang = lang.toLowerCase().indexOf('zh') === 0 ? 'zh-CN' : 'en';
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

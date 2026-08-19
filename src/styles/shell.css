@@ -1,0 +1,85 @@
+/* App shell + the route stubs WP2/WP3 replace. WP0 owns this file. */
+
+.shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.appbar {
+  height: var(--appbar-h);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.appbar__name {
+  font-size: var(--size-secondary);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-micro);
+}
+
+.appbar__spacer { flex: 1; }
+
+.appbar a, .appbar button {
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: var(--size-secondary);
+}
+
+.screen {
+  flex: 1;
+  padding: var(--space-6) var(--gutter) var(--space-8);
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.screen__title {
+  font-size: var(--size-display);
+  line-height: var(--lh-display);
+  font-weight: var(--weight-semibold);
+  margin: 0 0 var(--space-3);
+}
+
+.screen__placeholder {
+  border: 1px dashed var(--hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  color: var(--ink-3);
+  font-size: var(--size-secondary);
+  line-height: var(--lh-secondary);
+  background: var(--surface);
+}
+
+.hero {
+  margin: 0 0 var(--space-6);
+}
+
+.hero__line {
+  font-size: var(--size-title);
+  line-height: var(--lh-title);
+  font-weight: var(--weight-semibold);
+  margin: 0;
+}
+
+.hero__sub {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-2);
+  font-size: var(--size-secondary);
+  line-height: var(--lh-secondary);
+}
+
+@media (min-width: 960px) {
+  .screen { padding-left: var(--gutter-desktop); padding-right: var(--gutter-desktop); }
+  .appbar { padding: 0 var(--gutter-desktop); }
+}

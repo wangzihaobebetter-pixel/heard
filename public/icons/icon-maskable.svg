@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Heard">
+  <!-- Maskable variant: full-bleed paper, mark scaled into the 80% safe circle. -->
+  <rect width="512" height="512" fill="#F6F4EF"/>
+  <g transform="translate(256 256) scale(0.72) translate(-256 -256)">
+       it a button that is also a fact. Paper and ink, one accent. No gradient,
+       no mascot. DESIGN §5 chip anatomy, §7 palette. -->
+
+  <!-- transcript lines behind it: the tape it points at -->
+  <g fill="#DBD6CB">
+    <rect x="96" y="124" width="256" height="14" rx="7"/>
+    <rect x="96" y="164" width="320" height="14" rx="7"/>
+    <rect x="96" y="336" width="300" height="14" rx="7"/>
+    <rect x="96" y="376" width="212" height="14" rx="7"/>
+  </g>
+
+  <!-- the spoken word, washed -->
+  <rect x="88" y="212" width="336" height="88" rx="16" fill="#FBE3D0"/>
+
+  <!-- the chip: hairline border, accent play triangle, ink timecode -->
+  <rect x="112" y="228" width="288" height="56" rx="12" fill="#FFFFFF" stroke="#1B1A17" stroke-width="4"/>
+  <path d="M146 244 L146 268 L168 256 Z" fill="#B8410F"/>
+  <g fill="#1B1A17">
+    <!-- 12:04 in blocky mono numerals, drawn as paths so no font is needed -->
+    <!-- 1 -->
+    <rect x="192" y="238" width="12" height="36" rx="2"/>
+    <rect x="182" y="238" width="12" height="10" rx="2"/>
+    <rect x="178" y="264" width="30" height="10" rx="2"/>
+    <!-- 2 -->
+    <rect x="216" y="238" width="34" height="9" rx="2"/>
+    <rect x="241" y="243" width="9" height="16" rx="2"/>
+    <rect x="216" y="254" width="34" height="9" rx="2" transform="rotate(0 233 258)"/>
+    <rect x="216" y="255" width="9" height="12" rx="2"/>
+    <rect x="216" y="265" width="34" height="9" rx="2"/>
+    <!-- : -->
+    <rect x="262" y="246" width="9" height="9" rx="2"/>
+    <rect x="262" y="262" width="9" height="9" rx="2"/>
+    <!-- 0 -->
+    <rect x="284" y="238" width="34" height="9" rx="2"/>
+    <rect x="284" y="238" width="9" height="36" rx="2"/>
+    <rect x="309" y="238" width="9" height="36" rx="2"/>
+    <rect x="284" y="265" width="34" height="9" rx="2"/>
+    <!-- 4 -->
+    <rect x="332" y="238" width="9" height="22" rx="2"/>
+    <rect x="357" y="238" width="9" height="36" rx="2"/>
+    <rect x="332" y="252" width="34" height="9" rx="2"/>
+  </g>
+  </g>
+</svg>
