@@ -106,14 +106,18 @@ export interface InterviewFile {
 }
 
 /**
- * status (DESIGN §4.2):
+ * status (DESIGN §4.2; 'waiting' added by v3 B2):
+ *   'waiting'   — audio is safe on this device, no transcription provider yet
+ *                 (record-now-transcribe-after, PRODUCT-SPEC §4.1 — honest
+ *                 about which mode you're in). Also the parking state for
+ *                 retryable failures: refused key, offline.
  *   'listening' — transcription in flight; transcript fills in from the top
  *   'reading'   — transcript complete, notes being written ("Reading it back…")
  *   'ready'     — done
  *   'partial'   — a chunk failed after retries; there is a gap
  *   'failed'    — nothing was heard
  */
-export type InterviewStatus = 'listening' | 'reading' | 'ready' | 'partial' | 'failed';
+export type InterviewStatus = 'waiting' | 'listening' | 'reading' | 'ready' | 'partial' | 'failed';
 
 export interface Interview {
   id: string;

@@ -191,3 +191,82 @@ registerStrings('exportSheet', {
     'empty': '还没有可以导出的东西——整段听完之后笔记才会出现。',
   },
 });
+
+/* ------------------------------------------------------------- §4.1 Record (v3 B2) */
+
+registerStrings('record', {
+  en: {
+    'title': 'Record',
+    'start': 'Start recording',
+    'privacy': 'Your audio never leaves this device unless you connect a provider.',
+    'recording': 'Recording',
+    'paused': 'Paused',
+    'pause': 'Pause',
+    'resume': 'Resume',
+    'mark': 'Mark',
+    'done': 'Done',
+    'discard': 'Discard',
+    'discardAsk': 'Throw this recording away?',
+    'discardYes': 'Throw it away',
+    'discardNo': 'Keep recording',
+    'silenceWarn': 'Nothing has been heard for 20 seconds — check the microphone.',
+    'denied': 'The microphone was refused. Allow it in the browser and try again.',
+    'unavailable': 'This browser can\'t record here. Bringing a file still works.',
+    'notePlaceholder': 'Type a note — it pins to this moment',
+    'noteAdd': 'Add',
+    'noteCount': 'Pinned notes: {n}',
+  },
+  'zh-CN': {
+    'title': '录音',
+    'start': '开始录音',
+    'privacy': '你的音频不会离开这台设备，除非你接入一个转写服务。',
+    'recording': '正在录音',
+    'paused': '已暂停',
+    'pause': '暂停',
+    'resume': '继续',
+    'mark': '标记',
+    'done': '完成',
+    'discard': '丢弃',
+    'discardAsk': '把这段录音扔掉？',
+    'discardYes': '扔掉',
+    'discardNo': '继续录',
+    'silenceWarn': '已经 20 秒没有听到声音——检查一下麦克风。',
+    'denied': '麦克风被拒绝了。在浏览器里允许之后再试。',
+    'unavailable': '这个浏览器录不了音。带一个文件进来仍然可以。',
+    'notePlaceholder': '打一条笔记——它会钉在此刻',
+    'noteAdd': '添加',
+    'noteCount': '已钉下 {n} 条笔记',
+  },
+});
+
+/* ----------------------------------------- v3 B2: waiting state + recovery */
+
+registerStrings('interview', {
+  en: {
+    'waiting': 'recorded, not yet transcribed',
+    'waitingBody': 'The tape is safe on this device. Connect a transcription provider and it will be read.',
+    'waitingCta': 'Connect a provider',
+  },
+  'zh-CN': {
+    'waiting': '已录下，还没有转写',
+    'waitingBody': '这段录音安全地存在这台设备上。接入一个转写服务，它就会被读出来。',
+    'waitingCta': '接入转写服务',
+  },
+});
+
+registerStrings('library', {
+  en: {
+    'recordCta': 'Record',
+    'recoveredTitle': 'We saved your recording up to {time}.',
+    'recoveredBody': 'The app closed while recording on {date}. The tape up to that point is intact.',
+    'recoveredRestore': 'Restore it',
+    'recoveredDiscard': 'Discard',
+  },
+  'zh-CN': {
+    'recordCta': '录音',
+    'recoveredTitle': '你的录音已保存到 {time}。',
+    'recoveredBody': '{date} 录音时应用被关闭了。到那一刻为止的录音完好无损。',
+    'recoveredRestore': '恢复它',
+    'recoveredDiscard': '丢弃',
+  },
+});

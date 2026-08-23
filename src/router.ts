@@ -8,6 +8,7 @@
  *   #/            library
  *   #/i/:id       interview
  *   #/add         bring
+ *   #/rec         record (v3 B2)
  *   #/settings    settings
  *
  * An unknown hash resolves to `notfound`, and App renders the Library for it.
@@ -16,7 +17,7 @@
  */
 import { useCallback, useSyncExternalStore } from 'react';
 
-export type RouteName = 'library' | 'interview' | 'bring' | 'settings' | 'notfound';
+export type RouteName = 'library' | 'interview' | 'bring' | 'record' | 'settings' | 'notfound';
 
 export interface Route {
   name: RouteName;
@@ -30,6 +31,7 @@ const PATTERNS: Pattern[] = [
   { name: 'library',   segments: [] },
   { name: 'interview', segments: ['i', ':id'] },
   { name: 'bring',     segments: ['add'] },
+  { name: 'record',    segments: ['rec'] },
   { name: 'settings',  segments: ['settings'] },
 ];
 

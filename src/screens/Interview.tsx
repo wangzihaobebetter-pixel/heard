@@ -24,6 +24,7 @@ import { formatBytes, formatDuration, minutesOf } from '../lib/time';
 import { useT } from '../i18n';
 import { href, navigate } from '../router';
 import { getPlayer } from '../audio/player';
+import { maybeRunIntake } from '../audio/intake';
 import { wordAt } from '../components/wordCursor';
 import NoteRow from '../components/NoteRow';
 import SelectionPill from '../components/SelectionPill';
@@ -156,6 +157,15 @@ export default function Interview({ id }: { id: string }) {
   useEffect(() => {
     if (import.meta.env.DEV) void import('./Interview.devkit');
   }, []);
+
+  /* ------------------------------------------------------------ the intake */
+
+  /* v3 B2: opening an interview that still needs transcribing starts (or
+     retries) the pipeline. Single-flight and no-op when there is nothing to
+     do, so re-running on status flips costs nothing. */
+  const ivStatus = useStore((s) => s.interviews[id]?.status);
+  const sttKey = useStore((s) => s.settings.stt.key);
+  useEffect(() => { maybeRunIntake(id); }, [id, ivStatus, sttKey]);
 
   /* ----------------------------------------------------------- the player */
 
@@ -417,6 +427,7 @@ export default function Interview({ id }: { id: string }) {
   const listening = interview.status === 'listening';
   const reading = interview.status === 'reading';
   const partial = interview.status === 'partial';
+  const waiting = interview.status === 'waiting';
   const noTranscript = !transcript || transcript.words.length === 0;
   const heardSec = transcript?.heardSec ?? 0;
   const audioMissing = hasAudio === false;
@@ -429,7 +440,9 @@ export default function Interview({ id }: { id: string }) {
 
   const contextLang = interview.lang === 'auto' ? (transcript?.lang ?? '—') : interview.lang;
   const contextDate = new Date(interview.recordedAt ?? interview.createdAt).toISOString().slice(0, 10);
-  const contextStrip = listening
+  const contextStrip = waiting
+    ? t('interview.waiting')
+    : listening
     ? t('interview.listening', { done: minutesOf(heardSec), total: minutesOf(interview.durationSec) })
     : reading
       ? t('interview.readingBack')
@@ -478,6 +491,12 @@ export default function Interview({ id }: { id: string }) {
 
       {notice ? <p className="card-note" data-testid="notice">{notice}</p> : null}
 
+      {waiting ? (
+        <div className="iv__pending card-note" data-testid="notes-waiting">
+          <p>{t('interview.waitingBody')}</p>
+          <a className="button button--secondary" href={href('bring')}>{t('interview.waitingCta')}</a>
+        </div>
+      ) : null}
       {listening ? (
         <p className="iv__pending card-note" data-testid="notes-pending">{t('interview.notesPending')}</p>
       ) : null}

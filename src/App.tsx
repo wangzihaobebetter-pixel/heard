@@ -15,7 +15,10 @@ import { ensureStarterLibrary } from './content/load';
 import Library from './screens/Library';
 import Interview from './screens/Interview';
 import Bring from './screens/Bring';
+import Record from './screens/Record';
 import Settings from './screens/Settings';
+import { useRecorder } from './audio/recorder';
+import { formatDuration } from './lib/time';
 
 function applyTheme(theme: 'system' | 'paper' | 'ink') {
   const resolved = theme === 'system'
@@ -86,7 +89,29 @@ export default function App() {
         <a href={href('settings')} aria-label={t('settings.title')}>{t('settings.title')}</a>
       </header>
       {renderRoute(route.name, route.params)}
+      {route.name !== 'record' ? <RecorderBar /> : null}
     </div>
+  );
+}
+
+/**
+ * The tape does not stop because the screen changed (§4.1): while a recording
+ * is live anywhere but the Record screen, one fixed line shows it is still
+ * rolling and takes you back.
+ */
+function RecorderBar() {
+  const t = useT();
+  const phase = useRecorder((s) => s.phase);
+  const elapsedSec = useRecorder((s) => s.elapsedSec);
+  if (phase === 'idle') return null;
+  const paused = phase === 'paused';
+  return (
+    <a className="recbar" href={href('record')} data-testid="recbar" data-paused={paused ? 'true' : 'false'}>
+      <span className="recbar__dot" aria-hidden="true" />
+      <span>{paused ? t('record.paused') : t('record.recording')}</span>
+      <span className="topbar__spacer" />
+      <span className="tabular">{formatDuration(elapsedSec)}</span>
+    </a>
   );
 }
 
@@ -94,6 +119,7 @@ function renderRoute(name: ReturnType<typeof useRoute>['name'], params: Record<s
   switch (name) {
     case 'interview': return <Interview id={params.id} />;
     case 'bring': return <Bring />;
+    case 'record': return <Record />;
     case 'settings': return <Settings />;
     case 'library': return <Library />;
     // A hash we do not recognise is a Library, never a blank page.

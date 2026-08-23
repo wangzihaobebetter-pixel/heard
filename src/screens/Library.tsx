@@ -24,7 +24,8 @@ import type { Interview, Note } from '../types';
 import { useT } from '../i18n';
 import { getCachedPeaks } from '../audio/peaks';
 import Waveform from '../components/Waveform';
-import { href } from '../router';
+import { href, navigate } from '../router';
+import { listRecoverable, recoverSession, discardSession, useRecorder, type Recoverable } from '../audio/recorder';
 import { useStore, selectInterviewList } from '../store';
 import { isStorageDegraded } from '../lib/storage';
 import { formatDuration, minutesOf } from '../lib/time';
@@ -58,6 +59,68 @@ const LISTENING_FIXTURE: Interview = {
   lang: 'auto',
   status: 'listening',
 };
+
+/* -------------------------------------------------------- crash recovery */
+
+/**
+ * "We saved your recording up to 41:23" (§4.7): a recording session that never
+ * reached stop() left its slices in IndexedDB, and this card is the way back.
+ * Restore rebuilds the interview from what survived; Discard is a decision,
+ * so it is honoured by deleting the slices, not by hiding the card.
+ */
+function RecoveryCards() {
+  const t = useT();
+  const phase = useRecorder((s) => s.phase);
+  const [sessions, setSessions] = useState<Recoverable[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void listRecoverable().then((found) => { if (live) setSessions(found); });
+    return () => { live = false; };
+    // A live recording hides its own session; re-scan when one ends.
+  }, [phase]);
+
+  if (sessions.length === 0) return null;
+
+  async function restore(sid: string) {
+    setBusy(sid);
+    const interviewId = await recoverSession(sid);
+    setBusy(null);
+    setSessions((prev) => prev.filter((s) => s.sid !== sid));
+    if (interviewId) navigate('interview', { id: interviewId });
+  }
+
+  async function discard(sid: string) {
+    setBusy(sid);
+    await discardSession(sid);
+    setBusy(null);
+    setSessions((prev) => prev.filter((s) => s.sid !== sid));
+  }
+
+  return (
+    <>
+      {sessions.map((s) => (
+        <div className="notice library__recovered" key={s.sid} data-testid="library-recovered">
+          <p className="notice__text">
+            {t('library.recoveredTitle', { time: formatDuration(s.elapsedSec) })}{' '}
+            <span className="secondary">
+              {t('library.recoveredBody', { date: new Date(s.startedAt).toISOString().slice(0, 10) })}
+            </span>
+          </p>
+          <div className="library__recovered-actions">
+            <button type="button" className="button button--primary" disabled={busy === s.sid} onClick={() => { void restore(s.sid); }}>
+              {t('library.recoveredRestore')}
+            </button>
+            <button type="button" className="button button--quiet" disabled={busy === s.sid} onClick={() => { void discard(s.sid); }}>
+              {t('library.recoveredDiscard')}
+            </button>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
 
 /* ------------------------------------------------------------------ screen */
 
@@ -127,9 +190,17 @@ export default function Library() {
       <main className="screen library" data-screen="library">
         <h1 className="screen__title">{t('library.title')}</h1>
 
-        <a className="button button--primary button--wide library__bring" href={href('bring')}>
-          {t('action.bringRecording')}
-        </a>
+        <div className="library__actions">
+          <a className="button button--primary library__record" href={href('record')} data-testid="library-record">
+            {t('library.recordCta')}
+          </a>
+          <a className="button button--secondary library__bring" href={href('bring')}>
+            {t('action.bringRecording')}
+          </a>
+        </div>
+
+        <RecoveryCards />
+
 
         {failed ? (
           <div className="notice" data-testid="library-read-failed">

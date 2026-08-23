@@ -1,0 +1,138 @@
+/* Record — v3 B2 (PRODUCT-SPEC §4.1).
+
+   One verb per state. Idle is a single huge target and one privacy sentence;
+   recording is the meter, the clock and three buttons. Nothing on this screen
+   competes with the question "is it recording?". */
+
+.record { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* -------------------------------------------------------------------- idle */
+
+.record__idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-6);
+}
+
+/* The big target: thumb-reachable, obviously a record control, starts on
+   touch (§4.1 "no dialog"). */
+.record__big {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid var(--hairline);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: border-color var(--dur-state) var(--ease-move), transform var(--dur-state) var(--ease-move);
+}
+.record__big:hover { border-color: var(--anchor); }
+.record__big:active { transform: scale(0.96); }
+
+.record__big-dot {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--anchor);
+}
+
+.record__cta { font-weight: 600; }
+.record__privacy { max-width: 34ch; text-align: center; }
+
+/* -------------------------------------------------------------------- live */
+
+.record__live {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.record__wave {
+  width: 100%;
+  height: 72px;
+  display: block;
+}
+
+.record__clock {
+  font-size: 2.25rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.record__state { min-height: 1.2em; }
+
+/* While paused the whole surface says so, not just one small word. */
+.record[data-phase='paused'] .record__clock { opacity: 0.55; }
+
+.record__silent { width: 100%; }
+
+.record__controls {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.record__markcount { opacity: 0.7; }
+
+.record__note {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 480px;
+}
+.record__note .input { flex: 1; }
+
+.record__notecount { margin: 0; }
+
+.record__discard { padding-top: var(--space-2); }
+
+.record__confirm {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* ------------------------------------------------- compact bar (App shell) */
+
+/* The tape does not stop because the screen changed (§4.1 persistent
+   recorder bar). Fixed to the bottom, one line, one destination. */
+.recbar {
+  position: fixed;
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: var(--space-3);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  color: inherit;
+  text-decoration: none;
+}
+
+.recbar__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--anchor);
+  animation: recbar-pulse 1.6s ease-in-out infinite;
+}
+.recbar[data-paused='true'] .recbar__dot { animation: none; opacity: 0.5; }
+
+@keyframes recbar-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recbar__dot { animation: none; }
+}

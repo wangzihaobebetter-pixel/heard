@@ -13,11 +13,13 @@ const { parseHash, href } = await import('./.tmp-router/router.mjs');
 const failures = [];
 const eq = (actual, expected, what) => { if (actual !== expected) failures.push(`${what}: got ${actual}, expected ${expected}`); };
 
-/* The four routes, and only the four routes. */
+/* The five routes, and only the five routes. */
 eq(parseHash('#/').name, 'library', 'root');
 eq(parseHash('').name, 'library', 'empty hash');
 eq(parseHash('#').name, 'library', 'bare #');
 eq(parseHash('#/add').name, 'bring', '#/add');
+eq(parseHash('#/rec').name, 'record', '#/rec');
+eq(parseHash('#/rec/x').name, 'notfound', 'record takes no params');
 eq(parseHash('#/settings').name, 'settings', '#/settings');
 eq(parseHash('#/i/sample').name, 'interview', '#/i/sample');
 eq(parseHash('#/i/sample').params.id, 'sample', 'interview id');
@@ -41,4 +43,4 @@ if (failures.length) {
   failures.forEach((f) => console.error('  ✗ ' + f));
   process.exit(1);
 }
-console.log('verify-router: four routes resolve, unknown hashes fail closed to the Library ✓');
+console.log('verify-router: five routes resolve, unknown hashes fail closed to the Library ✓');
