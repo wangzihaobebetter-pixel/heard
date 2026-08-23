@@ -29,7 +29,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BUILD = process.env.HEARD_BUILD_DIR
@@ -605,4 +605,10 @@ sample bundle itself is unaffected: its anchors were produced by
 `);
 }
 
-main().catch((e) => { console.error('[make-sample] FAILED:', e.message); process.exit(1); });
+// Run only when invoked as a script: build-content.mjs imports buildWords /
+// buildSegments / silence helpers from this file and must not trigger a build.
+const invokedDirectly = process.argv[1]
+  && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+if (invokedDirectly) {
+  main().catch((e) => { console.error('[make-sample] FAILED:', e.message); process.exit(1); });
+}
