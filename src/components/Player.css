@@ -119,11 +119,23 @@
 .player__track {
   position: relative;
   flex: 1;
-  height: 24px;
+  height: 32px;
   display: flex;
   align-items: center;
   min-width: 40px;
 }
+
+.player__wave {
+  position: absolute;
+  inset: 2px 0;
+  width: 100%;
+  height: calc(100% - 4px);
+  pointer-events: none;
+}
+
+/* With a waveform drawn, the plain line and flat played bar stand down. */
+.player__track[data-wave='true'] .player__track-line,
+.player__track[data-wave='true'] .player__played { opacity: 0; }
 
 .player__track-line {
   position: absolute;
@@ -144,6 +156,14 @@
   border-radius: 3px;
   background: var(--anchor);
   opacity: 0.55;
+}
+
+/* Over a waveform, the span marker becomes a thin underline at the bottom of
+   the track — the bars themselves carry the accent inside the span. */
+.player__track[data-wave='true'] .player__span {
+  height: 3px;
+  bottom: 0;
+  opacity: 0.9;
 }
 
 .player__played {

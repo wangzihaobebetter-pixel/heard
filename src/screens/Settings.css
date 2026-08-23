@@ -2,14 +2,17 @@
    same document: section labels in micro type, hairline rules between, no
    grouped-inset-table look. */
 
-.settings { display: flex; flex-direction: column; gap: 0; }
+.settings { display: flex; flex-direction: column; gap: var(--space-4); }
 
 .settings__section {
-  padding: var(--space-6) 0;
-  border-bottom: 1px solid var(--hairline);
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--elev-1);
 }
 
-.settings__section:last-of-type { border-bottom: none; }
+.settings__section:last-of-type { border-bottom: 1px solid var(--hairline); }
 
 .settings__why { margin: 0; color: var(--ink-3); }
 
@@ -21,28 +24,29 @@
 .settings__choice {
   display: flex;
   align-self: flex-start;
+  gap: 3px;
+  padding: 3px;
+  background: var(--bg-1);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-chip);
-  overflow: hidden;
+  border-radius: var(--radius-control);
 }
 
 .settings__option {
-  min-height: var(--touch-min);
+  min-height: calc(var(--touch-min) - 6px);
   padding: 0 var(--space-4);
   font-size: var(--size-secondary);
   color: var(--ink-2);
-  background: var(--surface);
-  border-right: 1px solid var(--hairline);
+  background: transparent;
+  border-radius: calc(var(--radius-control) - 3px);
   transition: background var(--dur-state) var(--ease-move),
               color var(--dur-state) var(--ease-move);
 }
 
-.settings__option:last-child { border-right: none; }
-
 .settings__option[data-selected='yes'] {
-  background: var(--surface-2);
+  background: var(--surface-3);
   color: var(--ink);
   font-weight: var(--weight-medium);
+  box-shadow: var(--elev-1);
 }
 
 /* --------------------------------------------------- per-interview storage */

@@ -17,6 +17,7 @@ import type { PlayerState } from '../types';
 import { NUDGES, SPEEDS } from '../store/presets';
 import { formatTimecode, formatTimecodeTenths } from '../lib/time';
 import { useT } from '../i18n';
+import Waveform from './Waveform';
 import './Player.css';
 
 export type SheetHeight = 'collapsed' | 'mid' | 'full';
@@ -29,6 +30,8 @@ export interface PlayerView extends PlayerState {
 
 export interface PlayerProps {
   snap: PlayerView;
+  /** waveform buckets; null while decoding or when the decode failed */
+  peaks?: Float32Array | null;
   hasAudio: boolean;
   /** total length of the recording — known from the interview even with no blob */
   durationSec: number;
@@ -57,7 +60,7 @@ export interface PlayerProps {
 
 export default function Player(props: PlayerProps) {
   const {
-    snap, hasAudio, durationSec, stopped, nudged, notice, height, onHeight,
+    snap, peaks, hasAudio, durationSec, stopped, nudged, notice, height, onHeight,
     onToggle, onSeek, onNudge, onKeepListening, onPlayAgain, onSpeed, onPin,
     onLocate, onBackToNote, currentParagraph, fullTranscript,
   } = props;
@@ -140,8 +143,14 @@ export default function Player(props: PlayerProps) {
 
             <span className="player__time timecode" data-testid="player-time">{readout}</span>
 
-            <div className="player__track" data-testid="player-track">
+            <div className="player__track" data-testid="player-track" data-wave={peaks ? 'true' : 'false'}>
               <span className="player__track-line" aria-hidden="true" />
+              <Waveform
+                className="player__wave"
+                peaks={peaks ?? null}
+                progress={total ? at / total : 0}
+                span={snap.span && total ? { from: snap.span.s / total, to: snap.span.e / total } : null}
+              />
               {snap.span ? (
                 <span
                   className="player__span"

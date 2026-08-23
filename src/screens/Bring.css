@@ -17,6 +17,7 @@
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-card);
+  box-shadow: var(--elev-1);
 }
 
 .bring__file-text { min-width: 0; }
@@ -44,6 +45,7 @@
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-card);
+  box-shadow: var(--elev-1);
 }
 
 /* -------------------------------------------------------------- the button */

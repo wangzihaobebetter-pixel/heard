@@ -56,6 +56,13 @@
 /* ✓ heard is ink, never green (§7). */
 .librarycard__check { color: var(--heard); }
 
+.librarycard__wave {
+  display: block;
+  width: 100%;
+  height: 34px;
+  margin: var(--space-1) 0;
+}
+
 /* --------------------------------------------------- still being heard §4.1
 
    "a thin progress hairline and `Heard 41 of 92 min`". Scaled with a transform

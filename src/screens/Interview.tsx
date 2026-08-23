@@ -18,7 +18,8 @@ import {
   selectInterview, selectNotes, selectTranscript, usePlayer, useStore,
 } from '../store';
 import { POST_ROLL_SEC } from '../store/presets';
-import { putAudio } from '../lib/storage';
+import { getAudio, putAudio } from '../lib/storage';
+import { ensurePeaks } from '../audio/peaks';
 import { formatBytes, formatDuration, minutesOf } from '../lib/time';
 import { useT } from '../i18n';
 import { href, navigate } from '../router';
@@ -63,6 +64,7 @@ export default function Interview({ id }: { id: string }) {
   const playback = usePlayer();
 
   const [hasAudio, setHasAudio] = useState<boolean | null>(null);
+  const [peaks, setPeaks] = useState<Float32Array | null>(null);
   const [tab, setTab] = useState<Tab>('notes');
   const [sheet, setSheet] = useState<SheetHeight>('collapsed');
   const [pressedId, setPressedId] = useState<string | null>(null);
@@ -180,6 +182,18 @@ export default function Interview({ id }: { id: string }) {
     });
     return () => { cancelled = true; };
   }, [player, id, transcript, audioEpoch, audioEl]);
+
+  /* The shape of sound: one decode per recording, cached (peaks.ts), drawn by
+     the player track. Failure to decode just leaves the plain line. */
+  useEffect(() => {
+    setPeaks(null);
+    if (hasAudio !== true) return;
+    let cancelled = false;
+    void getAudio(id)
+      .then((blob) => (blob ? ensurePeaks(id, blob) : null))
+      .then((p) => { if (!cancelled) setPeaks(p); });
+    return () => { cancelled = true; };
+  }, [id, hasAudio, audioEpoch]);
 
   /* The receipt: the span reached `e + 0.8` and playback stopped by itself. */
   useEffect(() => {
@@ -661,6 +675,7 @@ export default function Interview({ id }: { id: string }) {
 
       <Player
         snap={{ ...playback, wordIndex, speed }}
+        peaks={peaks}
         hasAudio={!audioMissing}
         durationSec={interview.durationSec}
         stopped={stopped}

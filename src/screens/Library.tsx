@@ -22,6 +22,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Interview, Note } from '../types';
 import { useT } from '../i18n';
+import { getCachedPeaks } from '../audio/peaks';
+import Waveform from '../components/Waveform';
 import { href } from '../router';
 import { useStore, selectInterviewList } from '../store';
 import { isStorageDegraded } from '../lib/storage';
@@ -191,6 +193,12 @@ function Card({
   interview, notes, heardSec, lede,
 }: { interview: Interview; notes: Note[]; heardSec: number; lede: string | null }) {
   const t = useT();
+  const [peaks, setPeaks] = useState<Float32Array | null>(null);
+  useEffect(() => {
+    let live = true;
+    void getCachedPeaks(interview.id).then((p) => { if (live) setPeaks(p); });
+    return () => { live = false; };
+  }, [interview.id]);
   const heard = notes.filter((n) => n.heard).length;
   const listening = interview.status === 'listening';
   const total = minutesOf(interview.durationSec);
@@ -200,6 +208,8 @@ function Card({
   return (
     <a className="card librarycard" href={href('interview', { id: interview.id })} data-interview={interview.id}>
       <h2 className="librarycard__title">{interview.title}</h2>
+
+      {peaks ? <Waveform className="librarycard__wave" peaks={peaks} progress={progress} /> : null}
 
       <p className="librarycard__meta secondary">
         <span className="librarycard__date">
