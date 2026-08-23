@@ -7,7 +7,10 @@
  * the tape. That is the whole reason for the DOM cost.
  *
  * Paragraphs break on a silence of ≥ 2.5 s — the speaker's own punctuation,
- * which is more honest than the model's.
+ * which is more honest than the model's. A fluent speaker can go minutes
+ * without one, though, and a page-long paragraph is unreadable, so past
+ * PARAGRAPH_SOFT_SEC the next sentence end also breaks. Silence stays the
+ * primary rule; the soft break never splits mid-sentence.
  */
 import { memo } from 'react';
 import type { Transcript, Word } from '../types';
@@ -15,6 +18,13 @@ import { formatTimecode } from '../lib/time';
 import './TranscriptParagraph.css';
 
 export const PARAGRAPH_GAP_SEC = 2.5;
+export const PARAGRAPH_SOFT_SEC = 28;
+
+/** True when the word closes a sentence (ignoring trailing quotes/brackets). */
+function endsSentence(w: Word): boolean {
+  const t = w.t.replace(/["'”’»)\]』」]+$/u, '');
+  return /[.!?…。！？]$/u.test(t);
+}
 
 export interface Paragraph {
   i: number;
@@ -31,7 +41,8 @@ export function buildParagraphs(t: Transcript | undefined | null): Paragraph[] {
   let current: Word[] = [words[0]];
   for (let k = 1; k < words.length; k++) {
     const gap = words[k].s - words[k - 1].e;
-    if (gap >= PARAGRAPH_GAP_SEC) {
+    const ranLong = words[k - 1].e - current[0].s >= PARAGRAPH_SOFT_SEC;
+    if (gap >= PARAGRAPH_GAP_SEC || (ranLong && endsSentence(words[k - 1]))) {
       out.push({ i: out.length, s: current[0].s, e: current[current.length - 1].e, words: current });
       current = [];
     }

@@ -188,6 +188,18 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
            calc(var(--player-sheet-collapsed) + var(--space-6));
 }
 
+/* The reading card (DESIGN-SYSTEM §4.4): the tape sits on a surface, not on
+   the bare page. The paragraph gutter bar lives in the card's left padding. */
+.iv__reading {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--elev-1);
+  padding: var(--space-5) var(--space-4) var(--space-2) var(--space-5);
+}
+
+.iv__reading > div:last-child .tp:last-child { margin-bottom: 0; }
+
 /* ------------------------------------------------------------ notes pane */
 
 /* Screen-level, under the header and the progress hairline. */
@@ -340,5 +352,11 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
   .iv__transcript-scroll {
     padding: var(--space-6) var(--gutter-desktop)
              calc(var(--player-bar-h) + var(--space-6));
+  }
+
+  /* Hug the measure: the card is the page, not the pane. */
+  .iv__reading {
+    max-width: calc(var(--measure-transcript) + 2 * var(--space-6));
+    padding: var(--space-6) var(--space-6) var(--space-3);
   }
 }

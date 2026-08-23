@@ -534,24 +534,26 @@ export default function Interview({ id }: { id: string }) {
             <button type="button" className="btn btn--secondary">{t('action.listenOnce')}</button>
           </div>
         ) : (
-          paragraphs.map((p, k) => {
-            const gap = failedChunks.find(
-              (c) => c.s >= p.e && (k === paragraphs.length - 1 || c.s < paragraphs[k + 1].s),
-            );
-            return (
-              <div key={p.i}>
-                {renderParagraph(p)}
-                {gap ? (
-                  <div className="card-note iv__gap" data-testid="gap-card">
-                    <p className="iv__empty-title">
-                      {t('interview.gapTitle', { from: Math.floor(gap.s / 60), to: minutesOf(gap.e) })}
-                    </p>
-                    <button type="button" className="btn btn--secondary">{t('action.tryAgain')}</button>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })
+          <div className="iv__reading">
+            {paragraphs.map((p, k) => {
+              const gap = failedChunks.find(
+                (c) => c.s >= p.e && (k === paragraphs.length - 1 || c.s < paragraphs[k + 1].s),
+              );
+              return (
+                <div key={p.i}>
+                  {renderParagraph(p)}
+                  {gap ? (
+                    <div className="card-note iv__gap" data-testid="gap-card">
+                      <p className="iv__empty-title">
+                        {t('interview.gapTitle', { from: Math.floor(gap.s / 60), to: minutesOf(gap.e) })}
+                      </p>
+                      <button type="button" className="btn btn--secondary">{t('action.tryAgain')}</button>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </section>
