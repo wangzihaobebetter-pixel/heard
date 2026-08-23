@@ -7,10 +7,12 @@
   right: 0;
   bottom: 0;
   z-index: 30;
-  background: var(--surface-2);
-  border-top: 1px solid var(--hairline);
+  background: var(--surface);
+  border-top: 1px solid var(--hairline-2);
   border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   box-shadow: var(--shadow-player);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   padding: 0 var(--gutter) max(var(--space-3), env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
@@ -74,13 +76,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex: none;
-  border-radius: 20px;
-  background: var(--ink);
-  color: var(--bg);
+  border-radius: 22px;
+  background: var(--anchor);
+  background-image: var(--anchor-grad);
+  color: var(--anchor-ink);
+  box-shadow: 0 2px 10px rgba(224, 80, 30, 0.35);
+  transition: transform var(--dur-state) var(--ease-move);
 }
+
+.player__play:active { transform: scale(var(--press-scale)); }
 
 .icon-play {
   width: 0; height: 0;
@@ -121,8 +128,9 @@
 .player__track-line {
   position: absolute;
   left: 0; right: 0;
-  height: 1px;
-  background: var(--hairline);
+  height: 3px;
+  border-radius: 2px;
+  background: var(--surface-3);
 }
 
 /* The pressed span shown as a small accent range on the track — §7 names this
@@ -141,8 +149,9 @@
 .player__played {
   position: absolute;
   left: 0;
-  height: 1px;
-  background: var(--ink-2);
+  height: 3px;
+  border-radius: 2px;
+  background: var(--gold);
 }
 
 .player__range {
@@ -159,19 +168,21 @@
 .player__range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 7px;
   background: var(--ink);
-  border: 0;
+  border: 2px solid var(--bg);
+  box-shadow: var(--elev-1);
 }
 
 .player__range::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 7px;
   background: var(--ink);
-  border: 0;
+  border: 2px solid var(--bg);
+  box-shadow: var(--elev-1);
 }
 
 .player__range::-webkit-slider-runnable-track { background: transparent; }
@@ -276,11 +287,11 @@
     position: absolute;
     right: var(--gutter-desktop);
     bottom: calc(var(--player-bar-h) + var(--space-2));
-    background: var(--surface);
-    border: 1px solid var(--hairline);
+    background: var(--surface-2);
+    border: 1px solid var(--hairline-2);
     border-radius: var(--radius-card);
     padding: var(--space-2) var(--space-3);
-    box-shadow: var(--shadow-player);
+    box-shadow: var(--elev-3);
     max-height: none;
     transform: translateY(6px);
     transition: opacity var(--dur-settle) var(--ease-fade), transform var(--dur-settle) var(--ease-move);

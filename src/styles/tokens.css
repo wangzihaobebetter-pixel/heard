@@ -1,66 +1,87 @@
 /* ============================================================
-   Heard / 听证 — design tokens
-   Authority: memory/traceable-notes/DESIGN.md §7. WP0 owns this file.
+   Heard / 听证 — design tokens v2 "Studio"
+   Authority: memory/heard-v2/DESIGN-SYSTEM.md. Supersedes DESIGN.md §7.
 
    TOKEN LAYER ONLY. Screens inherit; nobody restyles a screen with literal
    hex. If a value is not here, it does not exist.
 
-   Character (§7): paper and ink; ONE accent, the colour of a tape recorder's
-   red-orange, used only for two things — the thing that is playing, and the
-   anchor being pressed. Nothing gradient, nothing glass, no illustration.
-
-   No red for errors. No green for success. ✓ heard is ink.
+   Character: a recording studio, not a document viewer. Warm dark default,
+   layered surfaces with real depth, serif display type, one signal accent
+   (the tape's red-orange) plus gold reserved for the shape of sound
+   (waveforms/progress). Still no --danger red, no success green: ✓ heard
+   is a receipt, not a verdict.
    ============================================================ */
 
 :root,
-:root[data-theme='paper'] {
-  /* --- Surfaces --- */
-  --bg: #F6F4EF;
-  --surface: #FFFFFF;
-  --surface-2: #EFECE5;      /* chips, sheet */
+:root[data-theme='ink'] {
+  /* --- Surfaces (5 levels — depth is the point) --- */
+  --bg: #161210;
+  --bg-1: #1E1813;
+  --surface: #262019;
+  --surface-2: #2F2820;
+  --surface-3: #3A3127;
+  --hairline: rgba(255, 240, 220, 0.08);
+  --hairline-2: rgba(255, 240, 220, 0.14);
 
   /* --- Ink --- */
-  --ink: #1B1A17;
-  --ink-2: #5F5B52;          /* secondary */
-  --ink-3: #8B867B;          /* muted / micro */
-  --hairline: #E3DFD6;
+  --ink: #F2ECE2;
+  --ink-2: #B5AB9C;
+  --ink-3: #837A6C;
 
-  /* --- The one accent --- */
-  --anchor: #B8410F;
-  --anchor-ink: #FFFFFF;     /* text on accent */
+  /* --- The tape accent --- */
+  --anchor: #FF6B35;
+  --anchor-soft: #FF8A55;
+  --anchor-deep: #E0501E;
+  --anchor-ink: #FFFFFF;
+  --anchor-grad: linear-gradient(135deg, #FF8A55 0%, #E0501E 100%);
+
+  /* --- The shape of sound (waveform / progress fill only, never text) --- */
+  --gold: #E8B84B;
 
   /* --- Karaoke --- */
-  --wash: #FBE3D0;           /* the word being spoken */
-  --wash-2: #F7EEE3;         /* already spoken, inside the span */
+  --wash: rgba(255, 138, 85, 0.26);
+  --wash-2: rgba(255, 138, 85, 0.10);
 
   /* --- State --- */
-  --heard: var(--ink);       /* ✓ fill — ink, never green */
+  --heard: var(--ink);
   --focus: var(--anchor);
 
-  /* Errors are ink on surface-2 with an accent hairline. There is no --danger. */
+  /* Errors are ink on surface-2 with an accent rule. There is no --danger. */
   --error-bg: var(--surface-2);
   --error-ink: var(--ink);
   --error-rule: var(--anchor);
 
-  --shadow-player: 0 -1px 0 var(--hairline), 0 -8px 24px rgba(0, 0, 0, 0.06);
-  color-scheme: light;
+  /* --- Depth --- */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.18);
+  --elev-2: 0 4px 12px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.28);
+  --elev-3: 0 8px 24px rgba(0, 0, 0, 0.45), 0 24px 64px rgba(0, 0, 0, 0.35);
+  --shadow-player: 0 -1px 0 var(--hairline-2), 0 -12px 32px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
 }
 
-:root[data-theme='ink'] {
-  --bg: #131210;
-  --surface: #1C1A17;
-  --surface-2: #242220;
+:root[data-theme='paper'] {
+  --bg: #F7F3EB;
+  --bg-1: #F1ECE2;
+  --surface: #FFFFFF;
+  --surface-2: #F3EEE4;
+  --surface-3: #EAE3D6;
+  --hairline: rgba(60, 45, 25, 0.10);
+  --hairline-2: rgba(60, 45, 25, 0.18);
 
-  --ink: #ECE8DF;
-  --ink-2: #B0AA9E;
-  --ink-3: #7E7A70;
-  --hairline: #2C2A26;
+  --ink: #201B15;
+  --ink-2: #635A4D;
+  --ink-3: #8F8677;
 
-  --anchor: #F0894C;
-  --anchor-ink: #1B1A17;
+  --anchor: #E0501E;
+  --anchor-soft: #FF8A55;
+  --anchor-deep: #B8410F;
+  --anchor-ink: #FFFFFF;
+  --anchor-grad: linear-gradient(135deg, #FF7A42 0%, #C9451A 100%);
 
-  --wash: rgba(240, 137, 76, 0.22);
-  --wash-2: rgba(240, 137, 76, 0.10);
+  --gold: #C29237;
+
+  --wash: rgba(224, 80, 30, 0.16);
+  --wash-2: rgba(224, 80, 30, 0.07);
 
   --heard: var(--ink);
   --focus: var(--anchor);
@@ -69,24 +90,33 @@
   --error-ink: var(--ink);
   --error-rule: var(--anchor);
 
-  --shadow-player: 0 -1px 0 var(--hairline), 0 -8px 24px rgba(0, 0, 0, 0.4);
-  color-scheme: dark;
+  --elev-1: 0 1px 2px rgba(40, 25, 10, 0.10), 0 2px 10px rgba(40, 25, 10, 0.07);
+  --elev-2: 0 4px 12px rgba(40, 25, 10, 0.12), 0 12px 32px rgba(40, 25, 10, 0.10);
+  --elev-3: 0 8px 24px rgba(40, 25, 10, 0.14), 0 24px 64px rgba(40, 25, 10, 0.12);
+  --shadow-player: 0 -1px 0 var(--hairline-2), 0 -12px 32px rgba(40, 25, 10, 0.12);
+  color-scheme: light;
 }
 
 :root {
   /* ---------------------------------------------------------- typography
-     System stack only — no webfont download, and CJK has to look native.  */
+     System stacks only — zero webfont download, native CJK.
+     Display is SERIF (measured: Songti SC elegant at 400/500 on dark;
+     600+ CJK serif clogs — never exceed 500 on display).
+     Body hierarchy uses ONLY 400/600 — measured: PingFang 500 vs 600 is
+     near-indistinguishable at body sizes, so 500 would be a fake tier.   */
+  --font-display: ui-serif, 'New York', Georgia, 'Songti SC',
+                  'Noto Serif CJK SC', serif;
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
                'PingFang SC', 'Noto Sans CJK SC', 'Hiragino Sans GB',
                'Microsoft YaHei', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* screen titles */
-  --size-display: 28px;
-  --lh-display: 34px;
-  /* interview title, sheet titles */
-  --size-title: 20px;
-  --lh-title: 26px;
+  /* screen titles — display serif */
+  --size-display: 30px;
+  --lh-display: 38px;
+  /* interview title, sheet titles — display serif */
+  --size-title: 21px;
+  --lh-title: 28px;
   /* transcript, note text — CJK gets the looser leading */
   --size-body: 16px;
   --lh-body: 26px;
@@ -100,11 +130,12 @@
   --tracking-micro: 0.01em;
   --size-timecode: 13px;                        /* mono, medium, tabular */
 
+  --weight-light: 300;            /* large numerals only */
   --weight-regular: 400;
-  --weight-medium: 500;
+  --weight-medium: 500;           /* legacy alias — treat as regular tier */
   --weight-semibold: 600;
 
-  /* Transcript measure (§7). */
+  /* Transcript measure. */
   --measure-transcript: 68ch;
 
   /* ------------------------------------------------------------- spacing
@@ -125,24 +156,25 @@
   --touch-min: 44px;              /* every hit area */
 
   /* --------------------------------------------------------------- radii */
-  --radius-chip: 6px;
-  --radius-card: 12px;
-  --radius-sheet: 16px;
+  --radius-chip: 8px;
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-sheet: 18px;
 
   /* ------------------------------------------------------- chrome heights */
   --appbar-h: 56px;
-  --player-bar-h: 72px;           /* desktop */
-  --player-sheet-collapsed: 88px; /* mobile */
+  --player-bar-h: 76px;           /* desktop */
+  --player-sheet-collapsed: 92px; /* mobile */
   --player-sheet-mid: 42vh;
 
   /* --------------------------------------------- timecode chip anatomy §5 */
   --chip-h: 28px;
-  --chip-pad-x: 8px;
+  --chip-pad-x: 10px;
   --chip-radius: var(--radius-chip);
-  --chip-border: 1px solid var(--hairline);
-  --chip-border-hover: 1px solid var(--ink);
+  --chip-border: 1px solid var(--hairline-2);
+  --chip-border-hover: 1px solid var(--ink-3);
   --chip-border-approx: 1px dotted var(--ink-3);   /* ≈ — could not pin exactly */
-  --chip-border-dashed: 1px dashed var(--ink-3);   /* the recording is not on this device */
+  --chip-border-dashed: 1px dashed var(--ink-3);   /* recording not on this device */
   --chip-font: var(--weight-medium) var(--size-timecode) / 1 var(--font-mono);
   --chip-grow-hover: 14px;                          /* the play triangle fades in */
 
@@ -155,15 +187,19 @@
   --col-transcript: 60%;
   --col-notes-min: 360px;
 
-  /* ------------------------------------------------------------- motion §7
-     No springs, no bounce — this is a document tool. The karaoke highlight
-     has NO transition on purpose: smoothing it makes it feel late.        */
-  --dur-state: 120ms;    /* chip fill, toggle */
+  /* ------------------------------------------------------------- motion
+     Micro-spring on presses; Apple's sheet curve for surfaces. The karaoke
+     highlight has NO transition on purpose: smoothing it makes it feel late. */
+  --dur-state: 120ms;    /* chip fill, toggle, press scale */
   --dur-settle: 200ms;   /* row settle, pill in/out */
-  --dur-scroll: 280ms;   /* scroll-to-span, sheet height */
+  --dur-scroll: 280ms;   /* scroll-to-span */
+  --dur-sheet: 320ms;    /* sheet height / slide */
   --dur-fade: 240ms;     /* notes fade-in */
+  --stagger: 30ms;       /* list cascade step */
   --ease-move: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-fade: ease-out;
+  --press-scale: 0.96;
 
   /* Playback timings the UI needs to reference (mirrors store/presets.ts). */
   --pre-roll: 1s;
@@ -175,8 +211,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   :root {
-    /* Scrolls become instant; fades stay (§7 motion policy). */
+    /* Scrolls become instant; fades stay. */
     --dur-scroll: 0ms;
+    --dur-sheet: 0ms;
     --ease-move: linear;
+    --press-scale: 1;
   }
 }

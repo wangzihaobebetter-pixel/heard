@@ -8,27 +8,33 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: start;
   column-gap: var(--space-3);
-  padding: var(--row-pad-y) 0;
-  border-bottom: 1px solid var(--hairline);
-  transition: background var(--dur-settle) var(--ease-fade);
+  padding: var(--row-pad-y) var(--space-3);
+  margin-bottom: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--elev-1);
+  overflow: hidden;
+  transition: background var(--dur-settle) var(--ease-fade),
+              border-color var(--dur-settle) var(--ease-fade);
 }
 
-.note:last-child { border-bottom: 0; }
+.note:last-child { margin-bottom: 0; }
 
 /* The 2 px accent left bar (§5.1) — it belongs to the row that is playing. */
 .note__bar {
   position: absolute;
-  left: calc(var(--space-3) * -1);
-  top: var(--space-1);
-  bottom: var(--space-1);
-  width: 2px;
-  border-radius: 1px;
-  background: var(--anchor);
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--anchor-grad);
   opacity: 0;
   transition: opacity var(--dur-state) var(--ease-fade);
 }
 
 .note[data-playing='true'] .note__bar { opacity: 1; }
+.note[data-playing='true'] { border-color: var(--hairline-2); }
 
 /* The afterglow: the row keeps a faint wash for 1.6 s after the span stops,
    then fades. It is the visual equivalent of a held breath. */
@@ -180,11 +186,11 @@
   top: calc(var(--touch-min) - var(--space-2));
   z-index: 20;
   min-width: 140px;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-2);
   border-radius: var(--radius-card);
   padding: var(--space-1);
-  box-shadow: var(--shadow-player);
+  box-shadow: var(--elev-3);
 }
 
 .menu__item {
@@ -197,4 +203,4 @@
   line-height: var(--lh-secondary);
 }
 
-.menu__item:hover { background: var(--surface-2); }
+.menu__item:hover { background: var(--surface-3); }

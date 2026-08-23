@@ -34,7 +34,11 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
   gap: var(--space-1);
   padding: 0 var(--space-2);
   border-bottom: 1px solid var(--hairline);
-  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  position: relative;
+  z-index: 12;
 }
 
 .iv__back {
@@ -48,9 +52,10 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
   min-width: 0;
   text-align: left;
   padding: 0 var(--space-2);
+  font-family: var(--font-display);
   font-size: var(--size-title);
   line-height: var(--lh-title);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-medium);
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -126,25 +131,30 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
   flex: none;
   display: flex;
   gap: var(--space-1);
-  padding: var(--space-2) var(--gutter);
-  border-bottom: 1px solid var(--hairline);
+  margin: var(--space-2) var(--gutter);
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
 }
 
 .seg {
   flex: 1;
-  height: 34px;
-  border-radius: var(--radius-chip);
+  height: 32px;
+  border-radius: calc(var(--radius-control) - 3px);
   border: 1px solid transparent;
   color: var(--ink-2);
   font-size: var(--size-secondary);
   font-weight: var(--weight-medium);
   background: transparent;
+  transition: background var(--dur-state) var(--ease-fade),
+              color var(--dur-state) var(--ease-fade);
 }
 
 .seg[data-on='true'] {
-  background: var(--surface);
-  border-color: var(--hairline);
+  background: var(--surface-3);
   color: var(--ink);
+  box-shadow: var(--elev-1);
 }
 
 /* ------------------------------------------------------------------- body */
@@ -251,10 +261,24 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
   color: var(--ink-3);
 }
 
-/* The notes fade in all at once when they arrive (§4.2, 240 ms). */
-.iv__sections { animation: notes-in var(--dur-fade) var(--ease-fade); }
+/* Notes cascade in: fade + 4 px rise, 30 ms stagger (capped at 10). */
+.iv__sections .note {
+  animation: notes-in var(--dur-fade) var(--ease-fade) backwards;
+}
+.iv__sections .note:nth-child(2)  { animation-delay: calc(var(--stagger) * 1); }
+.iv__sections .note:nth-child(3)  { animation-delay: calc(var(--stagger) * 2); }
+.iv__sections .note:nth-child(4)  { animation-delay: calc(var(--stagger) * 3); }
+.iv__sections .note:nth-child(5)  { animation-delay: calc(var(--stagger) * 4); }
+.iv__sections .note:nth-child(6)  { animation-delay: calc(var(--stagger) * 5); }
+.iv__sections .note:nth-child(7)  { animation-delay: calc(var(--stagger) * 6); }
+.iv__sections .note:nth-child(8)  { animation-delay: calc(var(--stagger) * 7); }
+.iv__sections .note:nth-child(9)  { animation-delay: calc(var(--stagger) * 8); }
+.iv__sections .note:nth-child(n+10) { animation-delay: calc(var(--stagger) * 9); }
 
-@keyframes notes-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes notes-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
 
 .iv__hint {
   margin: var(--space-6) 0 0;
@@ -306,6 +330,7 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
     min-width: var(--col-notes-min);
     max-width: 560px;
     border-right: 1px solid var(--hairline);
+    background: var(--bg-1);
     padding: var(--space-6) var(--gutter-desktop)
              calc(var(--player-bar-h) + var(--space-6));
   }

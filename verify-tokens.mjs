@@ -12,10 +12,13 @@ import { execSync } from 'node:child_process';
 const css = readFileSync('src/styles/tokens.css', 'utf8');
 const problems = [];
 
-// DESIGN §7 colour table — these must be defined per theme.
+// v2 "Studio" colour table (memory/heard-v2/DESIGN-SYSTEM.md) — per theme.
 const THEMED = [
-  '--bg', '--surface', '--surface-2', '--ink', '--ink-2', '--ink-3', '--hairline',
-  '--anchor', '--anchor-ink', '--wash', '--wash-2', '--heard', '--focus',
+  '--bg', '--bg-1', '--surface', '--surface-2', '--surface-3',
+  '--ink', '--ink-2', '--ink-3', '--hairline', '--hairline-2',
+  '--anchor', '--anchor-soft', '--anchor-deep', '--anchor-ink', '--anchor-grad',
+  '--gold', '--wash', '--wash-2', '--heard', '--focus',
+  '--elev-1', '--elev-2', '--elev-3',
 ];
 // Theme-independent scales.
 const GLOBAL = [
@@ -41,8 +44,8 @@ function blockFor(selector) {
   return css.slice(open, close);
 }
 
-const paper = blockFor(":root,\n:root[data-theme='paper']");
-const ink = blockFor(":root[data-theme='ink']");
+const ink = blockFor(":root,\n:root[data-theme='ink']");
+const paper = blockFor(":root[data-theme='paper']");
 if (!paper) problems.push('no Paper theme block');
 if (!ink) problems.push('no Ink theme block');
 

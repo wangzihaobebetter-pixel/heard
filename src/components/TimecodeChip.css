@@ -20,7 +20,7 @@
   padding: 0 var(--chip-pad-x);
   border: var(--chip-border);
   border-radius: var(--chip-radius);
-  background: var(--surface);
+  background: var(--surface-2);
   color: var(--ink);
   font: var(--chip-font);
   font-variant-numeric: tabular-nums;
@@ -30,7 +30,9 @@
     background var(--dur-state) var(--ease-fade),
     color var(--dur-state) var(--ease-fade),
     border-color 160ms var(--ease-fade),
-    padding-right 160ms var(--ease-move);
+    padding-right 160ms var(--ease-move),
+    transform var(--dur-state) var(--ease-move),
+    box-shadow var(--dur-state) var(--ease-fade);
 }
 
 /* The digits hold a fixed measure so a column of chips is flush on both edges.
@@ -101,9 +103,13 @@
 .tc[data-pressed='true'],
 .tc-hit:active .tc {
   background: var(--anchor);
-  border-color: var(--anchor);
+  background-image: var(--anchor-grad);
+  border-color: transparent;
   color: var(--anchor-ink);
+  box-shadow: 0 2px 8px rgba(224, 80, 30, 0.35);
 }
+
+.tc-hit:active .tc { transform: scale(var(--press-scale)); }
 
 .tc[data-pressed='true'] .tc__tri {
   opacity: 0.85;
