@@ -1,0 +1,68 @@
+/* The transcript pane's paragraph. §7: measure 68 ch on desktop, 20 px between
+   paragraphs, hairline timecodes in the gutter. */
+
+.tp {
+  position: relative;
+  margin: 0 0 var(--paragraph-gap);
+  padding-left: 0;
+  font-size: var(--size-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  max-width: var(--measure-transcript);
+}
+
+/* Mobile: the timecode sits inline at the paragraph start — a gutter that
+   narrow would just be a column of clipped digits. */
+.tp__gutter {
+  color: var(--ink-3);
+  font-size: var(--size-timecode);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  margin-right: var(--space-2);
+  user-select: none;
+}
+
+.tp__bar {
+  position: absolute;
+  left: -12px;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--anchor);
+  opacity: 0;
+  transition: opacity var(--dur-state) var(--ease-fade);
+}
+
+.tp[data-current='true'] .tp__bar { opacity: 1; }
+
+.w {
+  /* The karaoke highlight has NO transition on purpose (§7 motion policy):
+     smoothing it by even 80 ms makes the app feel like it is lagging the voice. */
+  border-radius: 3px;
+  padding: 1px 0;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.w[data-said='true'] { background: var(--wash-2); }
+
+.w[data-now='true'] {
+  background: var(--wash);
+  color: var(--ink);
+}
+
+@media (min-width: 960px) {
+  .tp {
+    padding-left: 72px;
+  }
+  .tp__gutter {
+    position: absolute;
+    left: 0;
+    top: 4px;
+    width: 56px;
+    text-align: right;
+    margin-right: 0;
+  }
+  .tp__bar { left: 64px; }
+}

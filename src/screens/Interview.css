@@ -1,0 +1,319 @@
+/* The Interview screen — DESIGN §4.2 layout, §7 density.
+   Mobile-first at 390 px; two columns at 960 px (Notes 40 % · Transcript 60 %). */
+
+/* This screen owns the viewport: it has its own 56 px header and a player
+   pinned to the bottom, so the app-level bar (Library/Bring/Settings chrome)
+   stands down while it is mounted. REVIEW A6 drift 3, achieved without
+   editing a WP0 file. */
+html[data-screen='interview'] .appbar { display: none; }
+html[data-screen='interview'], html[data-screen='interview'] body { overflow: hidden; }
+
+.iv {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100dvh;
+  background: var(--bg);
+}
+
+.iv--gone {
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--gutter);
+  height: auto;
+}
+
+/* ------------------------------------------------------------------ header */
+
+.iv__header {
+  height: var(--appbar-h);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg);
+}
+
+.iv__back {
+  text-decoration: none;
+  color: var(--ink);
+  font-size: var(--size-title);
+}
+
+.iv__title {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 0 var(--space-2);
+  font-size: var(--size-title);
+  line-height: var(--lh-title);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.iv__title-edit {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  margin: 0 var(--space-2);
+  padding: 0 var(--space-2);
+  font-size: var(--size-title);
+  font-weight: var(--weight-semibold);
+  background: var(--surface);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-chip);
+}
+
+.icon-export {
+  display: inline-block;
+  width: 13px;
+  height: 15px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 2px;
+  position: relative;
+}
+
+.icon-export::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -7px;
+  width: 1.5px;
+  height: 9px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.icon-export::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -7px;
+  width: 6px;
+  height: 6px;
+  border-left: 1.5px solid currentColor;
+  border-top: 1.5px solid currentColor;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.iv__headermenu { position: relative; }
+
+/* --------------------------------------------------------------- progress */
+
+.iv__progress {
+  flex: none;
+  height: 2px;
+  background: var(--hairline);
+}
+
+.iv__progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--anchor);
+  transition: width var(--dur-scroll) var(--ease-move);
+}
+
+/* ------------------------------------------------------- segmented control */
+
+.iv__segmented {
+  flex: none;
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--gutter);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.seg {
+  flex: 1;
+  height: 34px;
+  border-radius: var(--radius-chip);
+  border: 1px solid transparent;
+  color: var(--ink-2);
+  font-size: var(--size-secondary);
+  font-weight: var(--weight-medium);
+  background: transparent;
+}
+
+.seg[data-on='true'] {
+  background: var(--surface);
+  border-color: var(--hairline);
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------- body */
+
+.iv__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.iv__pane {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4) var(--gutter)
+           calc(var(--player-sheet-collapsed) + var(--space-6));
+  -webkit-overflow-scrolling: touch;
+}
+
+/* One pane at a time on mobile — the segmented control is the switch. */
+.iv__body[data-tab='notes'] .iv__transcript,
+.iv__body[data-tab='transcript'] .iv__notes { display: none; }
+
+.iv__notes, .iv__transcript { flex: 1; }
+
+.iv__transcript { padding: 0; }
+
+.iv__transcript-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-4) var(--gutter)
+           calc(var(--player-sheet-collapsed) + var(--space-6));
+}
+
+/* ------------------------------------------------------------ notes pane */
+
+/* Screen-level, under the header and the progress hairline. */
+.iv__context {
+  flex: none;
+  margin: 0;
+  padding: var(--space-2) var(--gutter);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 960px) {
+  .iv__context {
+    padding: var(--space-3) var(--gutter-desktop);
+    border-bottom: 1px solid var(--hairline);
+  }
+}
+
+.iv__firstrun {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--anchor);
+}
+
+.iv__firstrun-line {
+  flex: 1;
+  margin: 0;
+  font-size: var(--size-secondary);
+  line-height: var(--lh-secondary);
+  color: var(--ink);
+}
+
+/* Errors are ink on surface-2 with an accent hairline. No red in this product. */
+.card-note {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  background: var(--surface-2);
+  border-left: 2px solid var(--anchor);
+  border-radius: var(--radius-chip);
+  color: var(--ink);
+  font-size: var(--size-secondary);
+  line-height: var(--lh-secondary);
+}
+
+.iv__empty, .iv__gap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+}
+
+.iv__empty-title {
+  margin: 0;
+  font-size: var(--size-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+
+.iv__section { margin-bottom: var(--space-6); }
+
+.iv__sectionlabel {
+  margin: 0 0 var(--space-2);
+  color: var(--ink-3);
+}
+
+/* The notes fade in all at once when they arrive (§4.2, 240 ms). */
+.iv__sections { animation: notes-in var(--dur-fade) var(--ease-fade); }
+
+@keyframes notes-in { from { opacity: 0; } to { opacity: 1; } }
+
+.iv__hint {
+  margin: var(--space-6) 0 0;
+  color: var(--ink-3);
+}
+
+/* ------------------------------------------------------------------ buttons */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-chip);
+  font-size: var(--size-secondary);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.btn--secondary {
+  border: 1px solid var(--hairline);
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.btn--secondary:hover { border-color: var(--ink); }
+
+.btn--quiet {
+  color: var(--ink-2);
+  padding: 0 var(--space-2);
+  min-height: var(--chip-h);
+}
+
+.btn--quiet:hover { color: var(--ink); }
+
+/* ---------------------------------------------------------------- desktop */
+
+@media (min-width: 960px) {
+  .iv__segmented { display: none; }
+
+  .iv__body { flex-direction: row; }
+
+  .iv__body[data-tab='notes'] .iv__transcript,
+  .iv__body[data-tab='transcript'] .iv__notes { display: block; }
+
+  .iv__notes {
+    flex: 0 0 var(--col-notes);
+    min-width: var(--col-notes-min);
+    max-width: 560px;
+    border-right: 1px solid var(--hairline);
+    padding: var(--space-6) var(--gutter-desktop)
+             calc(var(--player-bar-h) + var(--space-6));
+  }
+
+  .iv__transcript { flex: 1 1 var(--col-transcript); }
+
+  .iv__transcript-scroll {
+    padding: var(--space-6) var(--gutter-desktop)
+             calc(var(--player-bar-h) + var(--space-6));
+  }
+}

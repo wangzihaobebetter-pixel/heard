@@ -1,0 +1,200 @@
+/* NoteRow — §4.2 row anatomy, §7 density (12 px vertical padding, hairline
+   separators). The grid is chip · text · controls, and the chip column is
+   fixed so every chip on the screen shares one left edge. */
+
+.note {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: var(--space-3);
+  padding: var(--row-pad-y) 0;
+  border-bottom: 1px solid var(--hairline);
+  transition: background var(--dur-settle) var(--ease-fade);
+}
+
+.note:last-child { border-bottom: 0; }
+
+/* The 2 px accent left bar (§5.1) — it belongs to the row that is playing. */
+.note__bar {
+  position: absolute;
+  left: calc(var(--space-3) * -1);
+  top: var(--space-1);
+  bottom: var(--space-1);
+  width: 2px;
+  border-radius: 1px;
+  background: var(--anchor);
+  opacity: 0;
+  transition: opacity var(--dur-state) var(--ease-fade);
+}
+
+.note[data-playing='true'] .note__bar { opacity: 1; }
+
+/* The afterglow: the row keeps a faint wash for 1.6 s after the span stops,
+   then fades. It is the visual equivalent of a held breath. */
+.note[data-afterglow='true'] { background: var(--wash-2); }
+
+.note[data-focused='true'] { background: var(--surface-2); }
+
+.note__chip { grid-column: 1; }
+
+.note__main {
+  grid-column: 2;
+  min-width: 0;
+  padding-top: calc((var(--touch-min) - var(--lh-body)) / 2);
+}
+
+.note__text {
+  margin: 0;
+  font-size: var(--size-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;      /* ≤ 2 lines at rest (§4.2) */
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.note[data-kind='quote'] .note__text,
+.note[data-kind='yours'] .note__text {
+  /* The text IS the quote here, so it is set as one. */
+  font-style: normal;
+}
+
+.note__edit {
+  width: 100%;
+  resize: vertical;
+  background: var(--surface);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-chip);
+  padding: var(--space-2);
+  font-size: var(--size-body);
+  line-height: var(--lh-body);
+}
+
+/* The verbatim line the claim was pinned to — muted, one line, behind a
+   hairline quote mark rather than a decorative glyph. */
+.note__quote {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-2);
+  position: relative;
+  padding-left: var(--space-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note__quotemark {
+  position: absolute;
+  left: 0;
+  top: 0.25em;
+  bottom: 0.25em;
+  width: 1px;
+  background: var(--hairline);
+}
+
+.note__unpinned {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-3);
+}
+
+.note__side {
+  grid-column: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-min);
+}
+
+/* ✓ heard — outline at rest, ink fill when set. Never green (§7). */
+.heard {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--chip-h);
+  min-height: var(--chip-h);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-chip);
+  color: var(--ink-3);
+  font-size: var(--size-micro);
+  line-height: var(--lh-micro);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-micro);
+  background: transparent;
+  transition:
+    background var(--dur-settle) var(--ease-fade),
+    color var(--dur-settle) var(--ease-fade),
+    border-color var(--dur-settle) var(--ease-fade);
+}
+
+/* The tick is drawn, not typed, so it keeps its weight at 12 px. */
+.heard__tick {
+  width: 10px;
+  height: 6px;
+  border-left: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.heard[data-on='true'] {
+  background: var(--heard);
+  border-color: var(--heard);
+  color: var(--bg);
+}
+
+/* The 3 s invitation after a span stops — accent outline, no modal (§5.6). */
+.note[data-afterglow='true'] .heard[data-on='false'] {
+  border-color: var(--anchor);
+  color: var(--ink-2);
+}
+
+@media (max-width: 400px) {
+  .heard__label { display: none; }
+  .heard { padding: 0 var(--space-2); }
+}
+
+.note__menu { position: relative; }
+
+.iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius-chip);
+  color: var(--ink-3);
+  font-size: var(--size-body);
+}
+
+@media (hover: hover) {
+  .note .iconbtn { opacity: 0; transition: opacity var(--dur-state) var(--ease-fade); }
+  .note:hover .iconbtn,
+  .note:focus-within .iconbtn { opacity: 1; }
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(var(--touch-min) - var(--space-2));
+  z-index: 20;
+  min-width: 140px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-1);
+  box-shadow: var(--shadow-player);
+}
+
+.menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-chip);
+  font-size: var(--size-secondary);
+  line-height: var(--lh-secondary);
+}
+
+.menu__item:hover { background: var(--surface-2); }

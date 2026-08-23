@@ -1,0 +1,116 @@
+/* TimecodeChip — DESIGN §5 "At rest" and §7 chip anatomy.
+   28 px tall inside a 44 px hit area; the visible chip never grows to meet the
+   finger, the invisible target does. */
+
+.tc-hit {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-min);
+  padding: calc((var(--touch-min) - var(--chip-h)) / 2) 0;
+  background: none;
+  border: 0;
+  flex: none;
+}
+
+.tc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: var(--chip-h);
+  padding: 0 var(--chip-pad-x);
+  border: var(--chip-border);
+  border-radius: var(--chip-radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--chip-font);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  white-space: nowrap;
+  transition:
+    background var(--dur-state) var(--ease-fade),
+    color var(--dur-state) var(--ease-fade),
+    border-color 160ms var(--ease-fade),
+    padding-right 160ms var(--ease-move);
+}
+
+/* The digits hold a fixed measure so a column of chips is flush on both edges.
+   --tc-width is set per interview by the Notes pane: 5ch under an hour, 7ch
+   once any timecode carries an hours field. */
+.tc__t {
+  display: inline-block;
+  min-width: var(--tc-width, 5ch);
+  text-align: left;
+}
+
+/* The play triangle: 6 px, hidden at rest, faded in on hover at 60 % opacity
+   while the chip widens by 14 px (§5). Drawn in CSS — no icon font, no asset. */
+.tc__tri {
+  width: 0;
+  height: 0;
+  margin-right: 0;
+  border-style: solid;
+  border-width: 3px 0 3px 5px;
+  border-color: transparent transparent transparent currentColor;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 160ms var(--ease-fade),
+    margin-right 160ms var(--ease-move),
+    transform 160ms var(--ease-move);
+}
+
+@media (hover: hover) {
+  .tc-hit:hover .tc {
+    border: var(--chip-border-hover);
+    padding-right: calc(var(--chip-pad-x) + var(--chip-grow-hover));
+  }
+  .tc-hit:hover .tc__tri {
+    opacity: 0.6;
+    margin-right: var(--space-1);
+    transform: scale(1);
+  }
+}
+
+.tc-hit:focus-visible { outline: none; }
+.tc-hit:focus-visible .tc {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* The recording isn't on this device. Dashed reads as "absent", not "broken",
+   and it stays distinct from the dotted ≈ beside it because the two say
+   different things: dotted is about the anchor, dashed is about the tape. */
+.tc[data-dashed='true'] {
+  border: var(--chip-border-dashed);
+  color: var(--ink-3);
+  background: transparent;
+}
+
+/* ≈ — dotted, muted. We know roughly where; the border says roughly.
+   This is ordered AFTER the dashed rule on purpose: when the tape is missing
+   from a note that was never firmly pinned, the honest statement is still the
+   weaker one about the anchor, and the two borders have to stay tellable
+   apart inside one screen (§4.2's shot-approx-and-dashed). */
+.tc[data-approx='true'] {
+  border: var(--chip-border-approx);
+  color: var(--ink-3);
+  background: transparent;
+}
+
+/* The moment (§5.1): accent fill, paper text, 120 ms. */
+.tc[data-pressed='true'],
+.tc-hit:active .tc {
+  background: var(--anchor);
+  border-color: var(--anchor);
+  color: var(--anchor-ink);
+}
+
+.tc[data-pressed='true'] .tc__tri {
+  opacity: 0.85;
+  margin-right: var(--space-1);
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc, .tc__tri { transition-duration: 0ms; }
+}

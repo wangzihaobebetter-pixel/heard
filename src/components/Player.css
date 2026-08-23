@@ -1,0 +1,294 @@
+/* Player — mobile bottom sheet (88 / 42vh / full), desktop fixed bar (72 px).
+   The only shadow in the product lives here (§7). */
+
+.player {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  background: var(--surface-2);
+  border-top: 1px solid var(--hairline);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  box-shadow: var(--shadow-player);
+  padding: 0 var(--gutter) max(var(--space-3), env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  height: var(--player-sheet-collapsed);
+  transition: height var(--dur-scroll) var(--ease-move);
+}
+
+/* With no tape there is no transport, only one honest line and a way out of
+   it — so the sheet takes the height that card needs instead of clipping it
+   at the collapsed transport height. */
+.player[data-has-audio='false'] {
+  height: auto;
+  min-height: var(--player-sheet-collapsed);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+}
+
+.player[data-height='mid'] { height: var(--player-sheet-mid); }
+.player[data-height='full'] { height: 88vh; }
+
+.player__grabber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  width: 100%;
+  flex: none;
+  touch-action: none;
+}
+
+.player__grabber-line {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--hairline);
+}
+
+.player__backtonote {
+  position: absolute;
+  top: -48px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 36px;
+  padding: 0 var(--space-4);
+  border-radius: 18px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: var(--size-secondary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+}
+
+.player__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+  height: 44px;
+}
+
+.player__play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 20px;
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.icon-play {
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent currentColor;
+  margin-left: 2px;
+}
+
+.icon-pause {
+  width: 10px;
+  height: 12px;
+  border-left: 3px solid currentColor;
+  border-right: 3px solid currentColor;
+}
+
+.player__time,
+.player__total {
+  font-size: var(--size-timecode);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+  min-width: 5ch;
+}
+
+.player__total { text-align: right; }
+
+.player__track {
+  position: relative;
+  flex: 1;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  min-width: 40px;
+}
+
+.player__track-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: var(--hairline);
+}
+
+/* The pressed span shown as a small accent range on the track — §7 names this
+   as one of the details that makes the product feel made. A nine-second claim
+   inside a ninety-minute tape is a fraction of a percent of the track, so it
+   is given a floor width and enough weight to be findable; its left edge stays
+   truthful, which is the part that carries meaning. */
+.player__span {
+  position: absolute;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--anchor);
+  opacity: 0.55;
+}
+
+.player__played {
+  position: absolute;
+  left: 0;
+  height: 1px;
+  background: var(--ink-2);
+}
+
+.player__range {
+  position: absolute;
+  left: 0; right: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 24px;
+}
+
+.player__range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--ink);
+  border: 0;
+}
+
+.player__range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--ink);
+  border: 0;
+}
+
+.player__range::-webkit-slider-runnable-track { background: transparent; }
+
+.player__speed {
+  flex: none;
+  height: var(--chip-h);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-chip);
+  font-size: var(--size-timecode);
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+}
+
+.player__after {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-top: var(--space-2);
+  opacity: 0;
+  pointer-events: none;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity var(--dur-settle) var(--ease-fade);
+}
+
+.player__after[data-shown='true'] {
+  opacity: 1;
+  pointer-events: auto;
+  max-height: 96px;
+}
+
+.player__nudge-label { margin-left: var(--space-2); }
+
+.player__nudges { display: inline-flex; gap: var(--space-1); }
+
+.nudge {
+  height: var(--chip-h);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-chip);
+  font-size: var(--size-timecode);
+  color: var(--ink-2);
+  background: var(--surface);
+}
+
+.nudge:hover { border-color: var(--ink); color: var(--ink); }
+
+.player__pin { color: var(--anchor); }
+
+.player__para,
+.player__full {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3) 0 var(--space-4);
+  min-height: 0;
+}
+
+.player__missing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  flex: none;
+  padding: var(--space-2) 0;
+  margin: 0;
+}
+
+.player__missing-line {
+  margin: 0;
+  font-size: var(--size-secondary);
+  line-height: var(--lh-secondary);
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- desktop */
+
+@media (min-width: 960px) {
+  .player {
+    height: var(--player-bar-h);
+    border-radius: 0;
+    padding: 0 var(--gutter-desktop);
+    justify-content: center;
+    gap: var(--space-2);
+  }
+  .player[data-height='mid'],
+  .player[data-height='full'] { height: var(--player-bar-h); }
+  .player[data-has-audio='false'] { height: var(--player-bar-h); min-height: 0; }
+
+  .player__grabber,
+  .player__backtonote,
+  .player__para,
+  .player__full { display: none; }
+
+  .player__row { height: 40px; }
+
+  /* On desktop there is room for the after-controls in the same bar, so they
+     sit beside the transport instead of pushing it. */
+  .player__after {
+    position: absolute;
+    right: var(--gutter-desktop);
+    bottom: calc(var(--player-bar-h) + var(--space-2));
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-card);
+    padding: var(--space-2) var(--space-3);
+    box-shadow: var(--shadow-player);
+    max-height: none;
+    transform: translateY(6px);
+    transition: opacity var(--dur-settle) var(--ease-fade), transform var(--dur-settle) var(--ease-move);
+  }
+  .player__after[data-shown='true'] { transform: translateY(0); }
+  .player__after[data-shown='false'] { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player, .player__after { transition-duration: 0ms; }
+}
