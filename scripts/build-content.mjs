@@ -304,6 +304,7 @@ function buildEntry(entry) {
     wordCount: words.length, noteCount: notes.length,
     license: entry.license, commercialUse: entry.commercialUse,
     blurb: entry.blurb, credit: entry.credit, audioSize: size,
+    ...(entry.contextNote ? { contextNote: entry.contextNote } : {}),
     peaks: peaks.filter((_, i) => i % 3 === 0),   // 60 buckets is plenty for a mini
   };
 

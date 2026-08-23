@@ -26,6 +26,8 @@ import { getCachedPeaks } from '../audio/peaks';
 import Waveform from '../components/Waveform';
 import { href, navigate } from '../router';
 import { listRecoverable, recoverSession, discardSession, useRecorder, type Recoverable } from '../audio/recorder';
+import { searchLibrary } from '../lib/librarySearch';
+import { setPendingSeek } from '../lib/deeplink';
 import { useStore, selectInterviewList } from '../store';
 import { isStorageDegraded } from '../lib/storage';
 import { formatDuration, minutesOf } from '../lib/time';
@@ -59,6 +61,63 @@ const LISTENING_FIXTURE: Interview = {
   lang: 'auto',
   status: 'listening',
 };
+
+/* -------------------------------------------------------- global search */
+
+/**
+ * Titles + transcript bodies + notes, every hit a deep link to its second
+ * (v3 B6, §4.5). Nothing is indexed ahead of time: the whole library lives
+ * in memory already, and folding ~15k words per keystroke is cheaper than
+ * keeping an index honest through edits.
+ */
+function GlobalSearch() {
+  const t = useT();
+  const interviews = useStore(selectInterviewList);
+  const transcripts = useStore((s) => s.transcripts);
+  const noteMap = useStore((s) => s.notes);
+  const [q, setQ] = useState('');
+  const hits = useMemo(
+    () => searchLibrary(q, interviews, transcripts, noteMap),
+    [q, interviews, transcripts, noteMap],
+  );
+
+  function open(hit: ReturnType<typeof searchLibrary>[number]) {
+    if (hit.s != null) setPendingSeek(hit.interviewId, hit.s);
+    navigate('interview', { id: hit.interviewId });
+  }
+
+  return (
+    <div className="libsearch" data-testid="global-search">
+      <input
+        className="input"
+        type="search"
+        data-testid="global-search-input"
+        placeholder={t('library.searchPlaceholder')}
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+      />
+      {q.trim().length >= 2 ? (
+        hits.length ? (
+          <ul className="libsearch__results" data-testid="global-search-results">
+            {hits.slice(0, 20).map((h, k) => (
+              <li key={k}>
+                <button type="button" className="libsearch__hit" onClick={() => open(h)}>
+                  <span className="libsearch__hit-title micro">
+                    {h.title}
+                    {h.s != null ? <span className="timecode"> · {formatDuration(h.s)}</span> : null}
+                  </span>
+                  <span className="libsearch__hit-snippet secondary">{h.snippet}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="secondary libsearch__none" data-testid="global-search-none">{t('library.searchEmpty')}</p>
+        )
+      ) : null}
+    </div>
+  );
+}
 
 /* -------------------------------------------------------- crash recovery */
 
@@ -151,6 +210,10 @@ export default function Library() {
   }, [fx, interviews]);
 
   const failed = storageFailed || fx === 'storage';
+  /* v3 B6, the 3-state Home (§4.7): "own" is what the person made. */
+  const own = useMemo(() => shown.filter((i) => !i.starter && !i.sample), [shown]);
+  const rest = useMemo(() => shown.filter((i) => i.starter || i.sample), [shown]);
+  const searchOnTop = own.length >= 3;
   const sample = shown.find((i) => i.id === SAMPLE_ID);
   // §4.1: the lede is the invitation, so it retires once the person has taken it.
   const sampleUntouched = !!sample && !(notes[SAMPLE_ID] ?? []).some((n) => n.heard);
@@ -190,6 +253,8 @@ export default function Library() {
       <main className="screen library" data-screen="library">
         <h1 className="screen__title">{t('library.title')}</h1>
 
+        {searchOnTop ? <GlobalSearch /> : null}
+
         <div className="library__actions">
           <a className="button button--primary library__record" href={href('record')} data-testid="library-record">
             {t('library.recordCta')}
@@ -198,6 +263,8 @@ export default function Library() {
             {t('action.bringRecording')}
           </a>
         </div>
+
+        {!searchOnTop && shown.length > 0 ? <GlobalSearch /> : null}
 
         <RecoveryCards />
 
@@ -229,18 +296,49 @@ export default function Library() {
         ) : null}
 
         {!failed && shown.length > 0 ? (
-          <ul className="library__list" data-testid="library-list">
-            {shown.map((interview) => (
-              <li key={interview.id}>
-                <Card
-                  interview={interview}
-                  notes={notes[interview.id] ?? []}
-                  heardSec={transcripts[interview.id]?.heardSec ?? 0}
-                  lede={interview.id === SAMPLE_ID && sampleUntouched ? t('library.lede') : null}
-                />
-              </li>
-            ))}
-          </ul>
+          <>
+            {own.length === 0 ? (
+              /* State 0 (§4.7): nothing recorded yet — the thesis, the verb,
+                 and a library that is already interesting. */
+              <p className="library__thesis secondary" data-testid="library-thesis">{t('library.thesis')}</p>
+            ) : null}
+
+            {own.length > 0 ? (
+              <>
+                <h2 className="micro library__sectionlabel">{t('library.yourRecordings')}</h2>
+                <ul className="library__list" data-testid="library-list-own">
+                  {own.map((interview) => (
+                    <li key={interview.id}>
+                      <Card
+                        interview={interview}
+                        notes={notes[interview.id] ?? []}
+                        heardSec={transcripts[interview.id]?.heardSec ?? 0}
+                        lede={null}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+
+            {rest.length > 0 ? (
+              <>
+                <h2 className="micro library__sectionlabel">{t('library.starterLibrary')}</h2>
+                <ul className="library__list" data-testid="library-list">
+                  {rest.map((interview) => (
+                    <li key={interview.id}>
+                      <Card
+                        interview={interview}
+                        notes={notes[interview.id] ?? []}
+                        heardSec={transcripts[interview.id]?.heardSec ?? 0}
+                        lede={interview.id === SAMPLE_ID && sampleUntouched ? t('library.lede') : null}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </>
         ) : null}
       </main>
 
@@ -306,7 +404,16 @@ function Card({
         </p>
       )}
 
-      {interview.sample ? <span className="librarycard__tag micro">{t('unit.sample')}</span> : null}
+      {/* Provenance (§4.5): where a recording came from is part of what it is. */}
+      {interview.sample ? (
+        <span className="librarycard__tag micro">{t('unit.sample')}</span>
+      ) : interview.starter ? (
+        <span className="librarycard__tag micro">{t('library.tagStarter')}</span>
+      ) : (
+        <span className="librarycard__tag micro">
+          {interview.file.name.startsWith('recording-') ? t('library.tagRecorded') : t('library.tagImported')}
+        </span>
+      )}
       {lede ? <p className="librarycard__lede secondary">{lede}</p> : null}
     </a>
   );

@@ -107,6 +107,8 @@ export interface StarterManifestEntry {
   audioSize: number;
   /** coarse peaks for the Library mini waveform (bundled, pre-fetch) */
   peaks: number[];
+  /** shown above the notes for material that needs framing (LOC items) */
+  contextNote?: string;
 }
 
 export interface StarterManifest {

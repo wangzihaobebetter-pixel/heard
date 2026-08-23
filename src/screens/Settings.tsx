@@ -27,6 +27,7 @@ import { LLM_PRESETS, STT_PRESETS } from '../store/presets';
 import { audioBytes, isStorageDegraded } from '../lib/storage';
 import { formatBytes } from '../lib/time';
 import { sampleBundle } from '../sample/load';
+import { starterManifest } from '../content/load';
 import { testKey } from '../audio/transcribe';
 import KeyField, { type TestResult } from '../components/KeyField';
 import Toggle from '../components/Toggle';
@@ -282,6 +283,17 @@ export default function Settings() {
           <p className="settings__line">{t('settings.aboutLine')}</p>
           {/* NASA must be acknowledged as the source; no NASA insignia is used. */}
           <p className="settings__line secondary" data-testid="nasa-credit">{credit}</p>
+
+          {/* v3 B6 (§4.5): the starter library's attribution, verbatim from
+              each publisher's requested credit line (content/registry.mjs). */}
+          <div className="settings__credits" data-testid="starter-credits">
+            <p className="settings__line">{t('settings.contentCredits')}</p>
+            <ul className="settings__credit-list">
+              {starterManifest().entries.map((e) => (
+                <li key={e.id} className="secondary">{e.credit}</li>
+              ))}
+            </ul>
+          </div>
           <a className="settings__link" href={GITHUB_URL} target="_blank" rel="noreferrer noopener">
             {t('settings.github')}
           </a>

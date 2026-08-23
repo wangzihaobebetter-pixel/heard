@@ -103,3 +103,16 @@
 @media (prefers-reduced-motion: reduce) {
   .settings__option { transition: none; }
 }
+
+/* ------------------------------------------------ v3 B6: starter credits */
+
+.settings__credits { display: flex; flex-direction: column; gap: var(--space-1); }
+.settings__credit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.settings__credit-list li { line-height: 1.5; font-size: var(--size-secondary); }

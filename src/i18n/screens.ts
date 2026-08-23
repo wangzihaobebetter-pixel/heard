@@ -383,3 +383,48 @@ registerStrings('ai', {
     'notYet': '录音转写完成后，摘要才会出现。',
   },
 });
+
+/* ------------------------------------------------ v3 B6: Library and Home */
+
+registerStrings('library', {
+  en: {
+    'thesis': 'Your notes, pinned to the moment they were said. Audio never leaves this device unless you connect a provider.',
+    'yourRecordings': 'Your recordings',
+    'starterLibrary': 'Starter library',
+    'searchPlaceholder': 'Search everything',
+    'searchEmpty': 'Nothing matches yet.',
+    'tagStarter': 'starter',
+    'tagRecorded': 'recorded',
+    'tagImported': 'imported',
+  },
+  'zh-CN': {
+    'thesis': '你的笔记，钉在它被说出的那一刻。音频不会离开这台设备，除非你接入转写服务。',
+    'yourRecordings': '你的录音',
+    'starterLibrary': '起步内容库',
+    'searchPlaceholder': '搜索全部内容',
+    'searchEmpty': '还没有匹配的内容。',
+    'tagStarter': '内容库',
+    'tagRecorded': '录音',
+    'tagImported': '导入',
+  },
+});
+
+registerStrings('interview', {
+  en: {
+    'badgePd': 'Public domain',
+    'badgeCc': 'CC BY-NC-SA 3.0',
+  },
+  'zh-CN': {
+    'badgePd': '公有领域',
+    'badgeCc': 'CC BY-NC-SA 3.0',
+  },
+});
+
+registerStrings('settings', {
+  en: {
+    'contentCredits': 'Starter library sources',
+  },
+  'zh-CN': {
+    'contentCredits': '起步内容库来源',
+  },
+});

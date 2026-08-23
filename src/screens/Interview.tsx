@@ -36,6 +36,8 @@ import Player, { type SheetHeight } from '../components/Player';
 import TranscriptParagraph, { buildParagraphs, type Paragraph } from '../components/TranscriptParagraph';
 import AiPanel from '../components/AiPanel';
 import { generateArtifacts, getArtifacts } from '../ai/artifacts';
+import { starterMeta } from '../content/load';
+import { takePendingSeek } from '../lib/deeplink';
 import type { Citation, StarterArtifacts } from '../content/schema';
 import './Interview.css';
 
@@ -218,6 +220,7 @@ export default function Interview({ id }: { id: string }) {
   const [artifacts, setArtifacts] = useState<StarterArtifacts | null>(null);
   const [aiStatus, setAiStatus] = useState<'ready' | 'none' | 'no-key' | 'generating' | 'failed'>('none');
   const canGenerate = !interview?.starter && !interview?.sample && (transcript?.words.length ?? 0) >= 40;
+  const starterInfo = useMemo(() => starterMeta(id), [id]);
 
   useEffect(() => {
     let live = true;
@@ -354,6 +357,19 @@ export default function Interview({ id }: { id: string }) {
 
   useEffect(() => { pressRef.current = press; }, [press]);
 
+  /* v3 B6: a global-search hit lands HERE — on the transcript, at its second.
+     Taken once, and only after we know whether there is audio to seek. */
+  useEffect(() => {
+    if (hasAudio === null) return;
+    const s = takePendingSeek(id);
+    if (s == null) return;
+    setTab('transcript');
+    setElTime(s);
+    if (hasAudio) player.seek(s);
+    lastUserScrollRef.current = 0;
+    window.requestAnimationFrame(() => scrollToSpan({ s, e: s, quality: 'unpinned' }));
+  }, [id, hasAudio, player, scrollToSpan]);
+
   /* v3 B4: ⌘Z / ⌃Z undoes a transcript edit, shift redoes — unless focus is
      in a field, whose own undo the browser owns. */
   useEffect(() => {
@@ -367,6 +383,25 @@ export default function Interview({ id }: { id: string }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [id]);
+
+  /* v3 B3 marks review resolution. Lives ABOVE the not-found return with every
+     other hook: on a reload this screen renders once WITHOUT an interview
+     (store hydration is async), and a hook below that return is React #310 —
+     a white screen exactly one refresh later. */
+  const resolveMark = useCallback((note: Note, text: string) => {
+    const words = transcript?.words ?? [];
+    if (words.length === 0) return;
+    let wi = wordAt(words, note.anchor.s);
+    if (wi < 0) {
+      wi = words.findIndex((w) => w.s >= note.anchor.s);
+      if (wi < 0) wi = words.length - 1;
+    }
+    const w = words[wi];
+    useStore.getState().updateNote(id, note.id, {
+      text: text.trim() || note.text,
+      anchor: { s: w.s, e: w.e, wi, wj: wi + 1, quality: 'word', pinnedByUser: true },
+    });
+  }, [id, transcript]);
 
   /* v3 B5: a citation chip is a claim about a moment; pressing it is the
      check. Same contract as pressing a note, without a note. */
@@ -581,21 +616,6 @@ export default function Interview({ id }: { id: string }) {
   const reviewable = (transcript?.words.length ?? 0) > 0 && !listening && !reading
     ? yours.filter((n) => n.anchor.quality === 'unpinned' && n.anchor.pinnedByUser)
     : [];
-
-  const resolveMark = useCallback((note: Note, text: string) => {
-    const words = transcript?.words ?? [];
-    if (words.length === 0) return;
-    let wi = wordAt(words, note.anchor.s);
-    if (wi < 0) {
-      wi = words.findIndex((w) => w.s >= note.anchor.s);
-      if (wi < 0) wi = words.length - 1;
-    }
-    const w = words[wi];
-    useStore.getState().updateNote(id, note.id, {
-      text: text.trim() || note.text,
-      anchor: { s: w.s, e: w.e, wi, wj: wi + 1, quality: 'word', pinnedByUser: true },
-    });
-  }, [id, transcript]);
   const heardCount = notes.filter((n) => n.heard).length;
 
   const contextLang = interview.lang === 'auto' ? (transcript?.lang ?? '—') : interview.lang;
@@ -653,6 +673,15 @@ export default function Interview({ id }: { id: string }) {
       ) : null}
 
       {notice ? <p className="card-note" data-testid="notice">{notice}</p> : null}
+
+      {/* The Library of Congress asks that this material be presented with
+          respect and context, not as a bare file in a list (content-sources
+          §Attribution) — the note travels above everything else. */}
+      {starterInfo?.contextNote ? (
+        <div className="card-note iv__context-note" data-testid="context-note">
+          <p>{starterInfo.contextNote}</p>
+        </div>
+      ) : null}
 
       {waiting ? (
         <div className="iv__pending card-note" data-testid="notes-waiting">
@@ -717,6 +746,17 @@ export default function Interview({ id }: { id: string }) {
       ) : null}
 
       <p className="iv__hint micro" data-testid="select-hint">{t('interview.selectHint')}</p>
+
+      {/* v3 B6: attribution stays with the recording, not buried in Settings —
+          a student quoting a primary source should see where it came from. */}
+      {starterInfo ? (
+        <div className="iv__credit" data-testid="starter-credit">
+          <p className="micro iv__credit-badge">
+            {starterInfo.license === 'public-domain' ? t('interview.badgePd') : t('interview.badgeCc')}
+          </p>
+          <p className="secondary iv__credit-line">{starterInfo.credit}</p>
+        </div>
+      ) : null}
     </section>
   );
 
