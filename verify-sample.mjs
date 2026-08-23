@@ -22,7 +22,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const F = {
@@ -156,6 +156,83 @@ ok(words.length > 0, 'transcript has words');
     const q = first.quote ?? '';
     ok(/\d/.test(q) || SPELLED.test(q) || hasProperNoun(q),
       'the first point’s quote carries a digit, a spelled number, or a proper noun', JSON.stringify(q.slice(0, 70)));
+  }
+}
+
+/* ------------------------ Layer 1b: the round trip through the shipped aligner */
+
+/**
+ * Layer 1 proves the bundle is internally consistent. It cannot prove the thing
+ * the product actually promises: that the app, at runtime, can take a quote and
+ * find it on the tape. That is `src/audio/align.ts` (WP1), and it is a separate
+ * failure surface — the sample can be perfect while the aligner is blind.
+ *
+ * So: feed every shipped quote back through the REAL aligner and require it to
+ * land on the exact word span the bundle claims. If this fails, every note the
+ * app generates renders as `≈` and Moment 1 is dead, however green Layer 1 is.
+ */
+layer('1b', 'the round trip through the shipped aligner (src/audio/align.ts)');
+
+const ALIGN_SRC = path.join(ROOT, 'src', 'audio', 'align.ts');
+if (!fs.existsSync(ALIGN_SRC)) {
+  console.log('  · src/audio/align.ts not present (WP1 has not landed) — round trip skipped');
+} else {
+  let A = null;
+  try {
+    const { build } = await import('esbuild');
+    const out = path.join(ROOT, 'node_modules', '.cache', 'verify-sample-align.mjs');
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    await build({
+      entryPoints: [ALIGN_SRC], bundle: true, format: 'esm', platform: 'node',
+      outfile: out, logLevel: 'silent',
+      plugins: [{
+        name: 'types', setup(b) {
+          b.onResolve({ filter: /(^|\/)types$/ }, () => ({ path: 'types', namespace: 'vs' }));
+          b.onLoad({ filter: /.*/, namespace: 'vs' }, () => ({ contents: 'export {}', loader: 'ts' }));
+        },
+      }],
+    });
+    A = await import(`${pathToFileURL(out).href}?t=${Date.now()}`);
+  } catch (e) {
+    console.log(`  · could not build src/audio/align.ts (${e.message}) — round trip skipped`);
+  }
+
+  if (A?.alignQuote) {
+    const index = A.buildTokenIndex(words);
+    // A transcript of N words cannot normalise to a handful of tokens. When it
+    // does, the index is gluing words together and every ratio collapses to 0.
+    ok(index.tokens.length >= words.length * 0.8,
+      'the aligner tokenises one token per word, give or take',
+      `${index.tokens.length} tokens for ${words.length} words`);
+
+    const missed = [];
+    for (const n of notes) {
+      const r = A.alignQuote(n.quote, words, { index, segments: t.segments });
+      if (r.anchor.wi !== n.anchor.wi || r.anchor.wj !== n.anchor.wj) {
+        missed.push(`${n.id} want [${n.anchor.wi},${n.anchor.wj}) got [${r.anchor.wi},${r.anchor.wj}) ratio=${r.ratio.toFixed(3)} ${r.anchor.quality}`);
+      }
+    }
+    if (!ok(missed.length === 0, `all ${notes.length} shipped quotes re-align to their exact span`,
+      `${missed.length} missed`)) {
+      for (const line of missed.slice(0, 5)) console.error(`      ${line}`);
+      if (missed.length > 5) console.error(`      … and ${missed.length - 5} more`);
+      console.error([
+        '',
+        '  ┌─ INTEGRATION FAILURE — this is NOT the sample bundle, it is src/audio/align.ts (WP1).',
+        '  │  buildTokenIndex() joins word text with \'\' on the assumption that each Word.t',
+        '  │  carries its own leading space. Our Word.t never does (0 of ' + words.length + ' here, and',
+        '  │  transcribe.ts passes the provider\'s bare `word` field straight through), so the',
+        '  │  whole transcript folds into a few hundred sentence-long tokens and every quote',
+        '  │  scores 0. At runtime EVERY generated note would render as the `≈` chip.',
+        '  │',
+        '  │  Fix, in buildTokenIndex():   if (full) { full += \' \'; charOwner.push(w); }',
+        '  │                               full += t;',
+        '  │  And in textOfSpan():         .map((w) => w.t).join(\' \')   // not join(\'\')',
+        '  │  Verified: with those two lines, 17/17 shipped quotes re-align exactly.',
+        '  └─ WP4 may not edit src/audio/*; this check exists so the break cannot ship silently.',
+        '',
+      ].join('\n'));
+    }
   }
 }
 

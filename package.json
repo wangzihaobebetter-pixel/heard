@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "tsc --noEmit && node verify-i18n.mjs && node verify-tokens.mjs && node verify-router.mjs && node verify-contracts.mjs && node verify-pwa.mjs && node verify-sample.mjs && vite build && node build-sw.mjs",
+    "build": "tsc --noEmit && node verify-i18n.mjs && node verify-tokens.mjs && node verify-router.mjs && node verify-contracts.mjs && node verify-pwa.mjs && node verify-sample.mjs && node scripts/verify-a4.mjs && vite build && node build-sw.mjs",
     "preview": "vite preview --host",
     "start": "vite --port 4173 --host",
     "verify:i18n": "node verify-i18n.mjs",
@@ -14,9 +14,12 @@
     "verify:contracts": "node verify-contracts.mjs",
     "verify:pwa": "node verify-pwa.mjs",
     "verify:sample": "node verify-sample.mjs",
+    "verify:a4": "node scripts/verify-a4.mjs",
     "verify:engine": "node verify-engine.mjs",
     "make:sample": "node scripts/make-sample.mjs",
-    "icons": "node make-icons.mjs"
+    "icons": "node make-icons.mjs",
+    "verify:export": "node verify-export.mjs",
+    "verify:export:golden": "node verify-export.mjs --golden"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",

@@ -524,19 +524,64 @@ deploy blocker.
 
 \`ensureSample()\` compares \`bundle.v\` against \`ui.sampleV\` and, when the bundle
 has moved, replaces the interview, the transcript and the \`point\`/\`quote\` notes
-wholesale while preserving the user's \`yours\` notes. Exercised against a stubbed
-store, seeding v1 → user adds a note and ticks one heard → reboot at v1 → bundle
-bumped to v2 with every word time shifted by +5 s:
+wholesale while preserving the user's \`yours\` notes.
+
+**This table is the output of \`node scripts/verify-a4.mjs\`, not prose.** That
+harness runs the real \`src/sample/load.ts\` — with the real \`align.ts\` and
+\`schema.ts\`, and only the store, IndexedDB and the id clock stubbed — through
+the whole story: seed at v1 → the user ticks one note heard and writes two of
+their own, one of them hand-pinned → reboot at v1 → the bundle bumps to v2 with
+every word time shifted by +5 s. It is in the \`npm run build\` chain.
 
 | behaviour | result |
 |---|---|
 | first boot seeds the sample and sets \`ui.sampleV\` | ✓ 17 notes, \`sampleV = 1\` |
-| reboot at the same \`v\` changes nothing | ✓ user's note and ✓ heard marks intact |
-| bundle bump replaces the authored notes | ✓ 12 shipped notes, \`heard\` reset to false |
-| the user's \`yours\` note survives, text untouched | ✓ text and ✓ heard preserved |
-| the user's note is re-anchored to the new transcript | ✓ 601.02 s → 606.02 s, still \`quality:"word"\` |
-| a \`pinnedByUser\` anchor degrades to \`unpinned\` instead of moving | ✓ (a human's seconds refer to audio that no longer exists) |
+| reboot at the same \`v\` changes nothing | ✓ user’s notes and ✓ heard marks intact |
+| bundle bump replaces the authored notes | ✓ 17 shipped notes, \`heard\` reset to false |
+| the user’s \`yours\` note survives, text untouched | ✓ text and ✓ heard preserved |
+| a \`pinnedByUser\` anchor degrades to \`unpinned\` instead of moving | ✓ (a human’s seconds refer to audio that no longer exists) |
 | the stale audio blob is dropped so A3 re-fetches | ✓ \`removeAudio('sample')\` called |
+| the user’s note is re-anchored to the new transcript | ⚠ blocked by the \`src/audio/align.ts\` token-join bug; correct (245.48 s → 250.48 s, \`quality:"word"\`) once that is fixed |
+
+19 of its 20 assertions pass. The one that does not is the re-anchor, and it
+fails for a reason outside this package — see below.
+
+## ⚠ Integration blocker — \`src/audio/align.ts\` (WP1)
+
+\`buildTokenIndex()\` builds its token stream by joining every \`Word.t\` with \`''\`,
+documented as deliberate on the assumption that each word carries its own
+leading space (\`" Kran"\` + \`"z"\`). **Ours never do:** 0 of 1740 words in this
+bundle begin with whitespace, and WP1's own \`transcribe.ts\` passes the
+provider's bare \`word\` field straight through, so this will be just as true of a
+real recording as it is of the sample.
+
+The consequence is not subtle. The transcript folds into 259 sentence-long
+tokens instead of 1740 word tokens, so every quote scores a similarity of 0:
+
+| through \`src/audio/align.ts\` | shipped quotes re-found at their exact span |
+|---|---|
+| as it stands | **0 / 17** |
+| with the two-line fix below | **17 / 17** |
+
+At runtime that means every note the app generates renders as the \`≈\` chip and
+"couldn't pin this to the tape" — Moment 1, the entire pitch, is dead — while
+every verifier that only reads \`sample.json\` stays green. \`textOfSpan()\` has the
+same root cause and returns \`"Itwasthesamewaywiththe"\`.
+
+\`\`\`ts
+// buildTokenIndex(), in the word loop:
+if (full) { full += ' '; charOwner.push(w); }   // <- add
+full += t;
+
+// textOfSpan():
+.map((w) => w.t).join(' ').trim()               // <- ' ', not ''
+\`\`\`
+
+WP4 does not own \`src/audio/*\` and has not touched it. Both \`verify-sample.mjs\`
+(Layer 1b) and \`scripts/verify-a4.mjs\` now fail loudly and name the file, so the
+break cannot ship silently and is not mistaken for a fault in the sample. The
+sample bundle itself is unaffected: its anchors were produced by
+\`scripts/lib/align-quote.mjs\`, the reference aligner, which joins on spaces.
 
 ## Honest notes on how this was produced
 
