@@ -402,3 +402,34 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
   align-items: center;
 }
 .markreview__input { flex: 1; min-width: 0; }
+
+/* --------------------------------------------------- v3 B4: transcript tools */
+
+.ivsearch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.ivsearch__row {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.ivsearch__input { flex: 1; min-width: 0; height: var(--chip-h); }
+.ivsearch__count { color: var(--ink-3); white-space: nowrap; }
+.ivsearch__spacer { flex: none; width: var(--space-2); }
+.ivsearch__note { margin: 0 0 var(--space-1); }
+
+.ivedit {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--surface);
+}
+.ivedit__input { flex: 1; min-width: 0; height: var(--chip-h); }

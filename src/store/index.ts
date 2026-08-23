@@ -20,7 +20,7 @@ import { id, now } from '../lib/ids';
 import { LLM_PRESETS, STT_PRESETS } from './presets';
 
 export const DEFAULT_SETTINGS: Settings = {
-  stt: { preset: 'openai', baseUrl: STT_PRESETS[0].baseUrl, key: '', model: STT_PRESETS[0].model },
+  stt: { preset: 'openai', baseUrl: STT_PRESETS[0].baseUrl, key: '', model: STT_PRESETS[0].model, vocabulary: '' },
   llm: { preset: 'openai', baseUrl: LLM_PRESETS[0].baseUrl, key: '', model: LLM_PRESETS[0].model },
   ui: { lang: 'en', theme: 'system', keepAudio: true, speed: 1 },
 };

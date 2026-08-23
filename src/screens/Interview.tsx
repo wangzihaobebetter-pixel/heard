@@ -26,6 +26,10 @@ import { href, navigate } from '../router';
 import { getPlayer } from '../audio/player';
 import { maybeRunIntake } from '../audio/intake';
 import { wordAt } from '../components/wordCursor';
+import {
+  applyWordEdits, canRedo, canUndo, findMatches, redoEdit, replaceAll,
+  undoEdit, useEditHistory, type SearchMatch,
+} from '../lib/transcriptEdit';
 import NoteRow from '../components/NoteRow';
 import SelectionPill from '../components/SelectionPill';
 import Player, { type SheetHeight } from '../components/Player';
@@ -79,6 +83,13 @@ export default function Interview({ id }: { id: string }) {
      would be worse than re-pressing one chip. */
   const [onlyNotes, setOnlyNotes] = useState(false);
   const [selection, setSelection] = useState<SelectionInfo | null>(null);
+  /* v3 B4: transcript search / replace / inline word edit */
+  const [query, setQuery] = useState('');
+  const [matchAt, setMatchAt] = useState(0);
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [replaceText, setReplaceText] = useState('');
+  const [replaceNote, setReplaceNote] = useState<string | null>(null);
+  const [editingWord, setEditingWord] = useState<{ i: number; value: string } | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -106,6 +117,35 @@ export default function Interview({ id }: { id: string }) {
   const afterglowTimer = useRef<number>();
 
   const paragraphs = useMemo(() => buildParagraphs(transcript), [transcript]);
+
+  /* v3 B4: search state derives from the words, so an edit re-searches; the
+     subscription is what re-renders the undo/redo buttons after an edit. */
+  useEditHistory((s) => s.version);
+  const matches = useMemo(
+    () => findMatches(transcript?.words ?? [], query),
+    [transcript, query],
+  );
+  const hitSet = useMemo(() => {
+    const s = new Set<number>();
+    for (const m of matches) for (let i = m.wi; i < m.wj; i++) s.add(i);
+    return s;
+  }, [matches]);
+  const currentMatch: SearchMatch | undefined = matches[Math.min(matchAt, matches.length - 1)];
+
+  const navigatedRef = useRef(false);
+  const goToMatch = useCallback((k: number) => {
+    if (!matches.length) return;
+    navigatedRef.current = true;
+    const at = ((k % matches.length) + matches.length) % matches.length;
+    setMatchAt(at);
+    const w = transcript?.words[matches[at].wi];
+    if (!w) return;
+    if (hasAudio) player.seek(Math.max(0, w.s - 0.2));
+    setElTime(w.s);
+    lastUserScrollRef.current = 0;
+    window.requestAnimationFrame(() => scrollToSpan({ s: w.s, e: w.e, wi: w.i, wj: w.i + 1, quality: 'word' }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matches, transcript, hasAudio, player]);
 
   /**
    * The cursor the DOM draws. While the voice is running this is WP1's
@@ -154,6 +194,12 @@ export default function Interview({ id }: { id: string }) {
     setMenuOpen(false);
     setEditingTitle(false);
     setElTime(0);
+    setQuery('');
+    setMatchAt(0);
+    setReplaceOpen(false);
+    setReplaceText('');
+    setReplaceNote(null);
+    setEditingWord(null);
   }, [id]);
 
   /* The headless driving surface for verify-interview.mjs and the screenshot
@@ -276,6 +322,20 @@ export default function Interview({ id }: { id: string }) {
   }, [player, hasAudio, scrollToSpan, tab, firstRunDismissed]);
 
   useEffect(() => { pressRef.current = press; }, [press]);
+
+  /* v3 B4: ⌘Z / ⌃Z undoes a transcript edit, shift redoes — unless focus is
+     in a field, whose own undo the browser owns. */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+      const el = e.target as HTMLElement;
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) return;
+      e.preventDefault();
+      if (e.shiftKey) redoEdit(id); else undoEdit(id);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [id]);
 
   /** Only-notes on = start studying now: play the first noted moment at or
       after the playhead. Off = plain free listening, nothing else changes. */
@@ -519,6 +579,7 @@ export default function Interview({ id }: { id: string }) {
     const holdsCursor = wordIndex >= first && wordIndex <= last;
     const touchesSpan = spanWords?.wi != null && spanWords.wj != null
       && spanWords.wj > first && spanWords.wi <= last;
+    const hitHere = currentMatch && currentMatch.wj > first && currentMatch.wi <= last ? currentMatch : undefined;
     return (
       <TranscriptParagraph
         key={p.i}
@@ -526,6 +587,8 @@ export default function Interview({ id }: { id: string }) {
         wordIndex={holdsCursor || touchesSpan ? wordIndex : -1}
         span={touchesSpan ? spanWords : undefined}
         staticSpan={audioMissing && touchesSpan ? spanWords : undefined}
+        hits={query && hitSet.size ? hitSet : undefined}
+        hit={hitHere}
       />
     );
   }
@@ -615,12 +678,117 @@ export default function Interview({ id }: { id: string }) {
     </section>
   );
 
+  /* v3 B4: double-click a word to fix what it says. Text only — the moment a
+     word happened is not the editor's to move. */
+  function onTranscriptDoubleClick(e: React.MouseEvent) {
+    const el = (e.target as HTMLElement).closest<HTMLElement>('.w');
+    if (!el || !transcript) return;
+    const i = Number(el.dataset.i);
+    const w = transcript.words[i];
+    if (!w) return;
+    window.getSelection()?.removeAllRanges();
+    setSelection(null);
+    setEditingWord({ i, value: w.t });
+  }
+
+  const searchbar = !noTranscript ? (
+    <div className="ivsearch" data-testid="transcript-search">
+      <div className="ivsearch__row">
+        <input
+          className="input ivsearch__input"
+          data-testid="search-input"
+          type="search"
+          placeholder={t('interview.searchPlaceholder')}
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setMatchAt(0); setReplaceNote(null); navigatedRef.current = false; }}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return;
+            // First Enter lands on the first match; after that it walks.
+            goToMatch(e.shiftKey ? matchAt - 1 : navigatedRef.current ? matchAt + 1 : matchAt);
+          }}
+        />
+        {query ? (
+          <span className="ivsearch__count timecode" data-testid="search-count">
+            {matches.length ? t('interview.searchCount', { at: Math.min(matchAt + 1, matches.length), n: matches.length }) : t('interview.searchNone')}
+          </span>
+        ) : null}
+        <button type="button" className="btn btn--quiet" data-testid="search-prev" aria-label={t('interview.searchPrev')} disabled={!matches.length} onClick={() => goToMatch(matchAt - 1)}>↑</button>
+        <button type="button" className="btn btn--quiet" data-testid="search-next" aria-label={t('interview.searchNext')} disabled={!matches.length} onClick={() => goToMatch(matchAt + 1)}>↓</button>
+        <button type="button" className="btn btn--quiet" data-testid="replace-toggle" aria-expanded={replaceOpen} onClick={() => setReplaceOpen((v) => !v)}>
+          {t('interview.replaceToggle')}
+        </button>
+        <span className="ivsearch__spacer" />
+        <button type="button" className="btn btn--quiet" data-testid="undo-edit" aria-label={t('interview.undo')} disabled={!canUndo(id)} onClick={() => undoEdit(id)}>↶</button>
+        <button type="button" className="btn btn--quiet" data-testid="redo-edit" aria-label={t('interview.redo')} disabled={!canRedo(id)} onClick={() => redoEdit(id)}>↷</button>
+      </div>
+      {replaceOpen ? (
+        <div className="ivsearch__row">
+          <input
+            className="input ivsearch__input"
+            data-testid="replace-input"
+            type="text"
+            placeholder={t('interview.replacePlaceholder')}
+            value={replaceText}
+            onChange={(e) => { setReplaceText(e.target.value); setReplaceNote(null); }}
+          />
+          <button
+            type="button"
+            className="btn btn--secondary"
+            data-testid="replace-all"
+            disabled={!matches.length || !replaceText.trim()}
+            onClick={() => {
+              const n = replaceAll(id, matches, replaceText);
+              setReplaceNote(n === -1 ? t('interview.replaceMismatch') : t('interview.replaceDone', { n }));
+            }}
+          >
+            {t('interview.replaceAll')}
+          </button>
+        </div>
+      ) : null}
+      {replaceNote ? <p className="ivsearch__note secondary" data-testid="replace-note">{replaceNote}</p> : null}
+    </div>
+  ) : null;
+
   const transcriptPane = (
     <section className="iv__pane iv__transcript" data-testid="transcript-pane">
+      {searchbar}
+      {editingWord ? (
+        <div className="ivedit" data-testid="word-edit">
+          <span className="ivedit__label micro">{t('interview.editWord')}</span>
+          <input
+            className="input ivedit__input"
+            data-testid="word-edit-input"
+            type="text"
+            autoFocus
+            value={editingWord.value}
+            onChange={(e) => setEditingWord({ ...editingWord, value: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                applyWordEdits(id, [{ i: editingWord.i, t: editingWord.value.trim() || transcript?.words[editingWord.i]?.t || '' }]);
+                setEditingWord(null);
+              }
+              if (e.key === 'Escape') setEditingWord(null);
+            }}
+          />
+          <button
+            type="button"
+            className="btn btn--secondary"
+            data-testid="word-edit-save"
+            onClick={() => {
+              applyWordEdits(id, [{ i: editingWord.i, t: editingWord.value.trim() || transcript?.words[editingWord.i]?.t || '' }]);
+              setEditingWord(null);
+            }}
+          >
+            {t('interview.reviewKeep')}
+          </button>
+          <button type="button" className="btn btn--quiet" onClick={() => setEditingWord(null)}>{t('action.close')}</button>
+        </div>
+      ) : null}
       <div
         className="iv__transcript-scroll"
         ref={transcriptRef}
         onScroll={() => { lastUserScrollRef.current = Date.now(); }}
+        onDoubleClick={onTranscriptDoubleClick}
       >
         {noTranscript ? (
           <div className="card-note iv__empty" data-testid="not-heard">

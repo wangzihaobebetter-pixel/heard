@@ -144,6 +144,22 @@ export default function Settings() {
             onPreset={(preset) => applySttPreset(preset as typeof settings.stt.preset)}
             onTest={runSttTest}
           />
+
+          {/* v3 B4 (§4.2): course terms and names, one per line, sent as the
+              provider's prompt bias so "Dusek" arrives as Dusek the first time. */}
+          <div className="field">
+            <label className="field__label" htmlFor="stt-vocabulary">{t('settings.vocabulary')}</label>
+            <textarea
+              id="stt-vocabulary"
+              className="input settings__vocab"
+              data-testid="stt-vocabulary"
+              rows={3}
+              spellCheck={false}
+              value={settings.stt.vocabulary ?? ''}
+              onChange={(e) => setSettings({ stt: { vocabulary: e.target.value } })}
+            />
+            <p className="secondary settings__why">{t('settings.vocabularyWhy')}</p>
+          </div>
         </section>
 
         {/* --------------------------------------------------------- 2 · Notes */}

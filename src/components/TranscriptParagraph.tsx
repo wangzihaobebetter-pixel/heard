@@ -62,9 +62,13 @@ export interface TranscriptParagraphProps {
   span?: { wi?: number; wj?: number };
   /** the pressed span, statically highlighted when there is no audio to play */
   staticSpan?: { wi?: number; wj?: number };
+  /** word indices matched by the transcript search (v3 B4) */
+  hits?: Set<number>;
+  /** the search's CURRENT match, drawn stronger than its siblings */
+  hit?: { wi: number; wj: number };
 }
 
-function TranscriptParagraphImpl({ para, wordIndex, span, staticSpan }: TranscriptParagraphProps) {
+function TranscriptParagraphImpl({ para, wordIndex, span, staticSpan, hits, hit }: TranscriptParagraphProps) {
   const first = para.words[0].i;
   const last = para.words[para.words.length - 1].i;
   // The cursor, not the transport, decides the highlight: pause mid-sentence
@@ -98,6 +102,7 @@ function TranscriptParagraphImpl({ para, wordIndex, span, staticSpan }: Transcri
               data-e={w.e}
               data-now={now ? 'true' : 'false'}
               data-said={said || inStatic ? 'true' : 'false'}
+              data-hit={hit && w.i >= hit.wi && w.i < hit.wj ? 'current' : hits?.has(w.i) ? 'true' : 'false'}
             >
               {w.t}{' '}
             </span>

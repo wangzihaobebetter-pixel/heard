@@ -148,6 +148,9 @@ export interface SttSettings {
   baseUrl: string;
   key: string;
   model: string;
+  /** course terms and names, one per line — sent as the STT prompt bias and
+      offered to the AI layer as context (v3 B4, §4.2 custom vocabulary) */
+  vocabulary?: string;
 }
 
 export interface LlmSettings {

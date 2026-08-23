@@ -66,3 +66,15 @@
   }
   .tp__bar { left: 64px; }
 }
+
+/* --------------------------------------------------- v3 B4: search hits */
+
+.w[data-hit='true'] {
+  background: var(--wash-2);
+  border-radius: 3px;
+}
+.w[data-hit='current'] {
+  background: var(--wash);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 var(--anchor);
+}

@@ -295,3 +295,49 @@ registerStrings('interview', {
     'reviewRemove': '删除',
   },
 });
+
+/* -------------------------------------------- v3 B4: transcript tools */
+
+registerStrings('interview', {
+  en: {
+    'searchPlaceholder': 'Search the transcript',
+    'searchCount': '{at} of {n}',
+    'searchNone': 'no matches',
+    'searchPrev': 'Previous match',
+    'searchNext': 'Next match',
+    'replaceToggle': 'Replace',
+    'replacePlaceholder': 'Replace with',
+    'replaceAll': 'Replace all',
+    'replaceDone': 'Replaced {n}.',
+    'replaceMismatch': 'Replace word-for-word: use the same number of words.',
+    'undo': 'Undo edit',
+    'redo': 'Redo edit',
+    'editWord': 'Fix this word',
+  },
+  'zh-CN': {
+    'searchPlaceholder': '搜索转写',
+    'searchCount': '{at} / {n}',
+    'searchNone': '没有匹配',
+    'searchPrev': '上一个',
+    'searchNext': '下一个',
+    'replaceToggle': '替换',
+    'replacePlaceholder': '替换为',
+    'replaceAll': '全部替换',
+    'replaceDone': '已替换 {n} 处。',
+    'replaceMismatch': '逐词替换：请用相同数量的词。',
+    'undo': '撤销编辑',
+    'redo': '重做编辑',
+    'editWord': '修正这个词',
+  },
+});
+
+registerStrings('settings', {
+  en: {
+    'vocabulary': 'Vocabulary',
+    'vocabularyWhy': 'Course terms and names, one per line. Sent with every transcription so they arrive spelled right.',
+  },
+  'zh-CN': {
+    'vocabulary': '自定义词表',
+    'vocabularyWhy': '课程术语和人名，一行一个。每次转写都会带上，让它们第一次就写对。',
+  },
+});

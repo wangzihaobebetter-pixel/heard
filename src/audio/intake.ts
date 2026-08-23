@@ -32,7 +32,13 @@ function sttConfig(lang: 'auto' | string): SttConfig | null {
   const { stt } = useStore.getState().settings;
   if (!stt.key.trim()) return null;
   const preset = STT_PRESETS.find((p) => p.id === stt.preset);
-  return { baseUrl: stt.baseUrl, key: stt.key, model: stt.model, lang, provider: preset?.label };
+  // The vocabulary is line-per-term in Settings; providers take a sentence.
+  const vocabulary = (stt.vocabulary ?? '').split('\n').map((s) => s.trim()).filter(Boolean).join(', ');
+  return {
+    baseUrl: stt.baseUrl, key: stt.key, model: stt.model, lang,
+    provider: preset?.label,
+    ...(vocabulary ? { prompt: vocabulary } : {}),
+  };
 }
 
 /** Does this interview need the pipeline at all? */

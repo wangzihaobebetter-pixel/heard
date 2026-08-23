@@ -43,6 +43,13 @@ export interface SttConfig {
   lang: 'auto' | string;
   /** Label for error copy — `bring.keyRefused` interpolates `{provider}`. */
   provider?: string;
+  /**
+   * Vocabulary bias (v3 B4): course terms and names the model should prefer.
+   * A STATIC prompt, identical for every chunk — distinct from the chunk-tail
+   * threading this file's header deliberately rejects, and concurrency-safe
+   * for exactly that reason.
+   */
+  prompt?: string;
 }
 
 /** What a provider gives back, before any offset correction. */
@@ -137,6 +144,7 @@ export async function transcribeOnce(
     form.append('timestamp_granularities[]', 'word');
     form.append('timestamp_granularities[]', 'segment');
     if (cfg.lang && cfg.lang !== 'auto') form.append('language', cfg.lang);
+    if (cfg.prompt) form.append('prompt', cfg.prompt);
 
     let res: Response;
     try {
