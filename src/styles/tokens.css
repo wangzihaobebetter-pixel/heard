@@ -1,46 +1,48 @@
 /* ============================================================
-   Heard / 听证 — design tokens v2 "Studio"
-   Authority: memory/heard-v2/DESIGN-SYSTEM.md. Supersedes DESIGN.md §7.
+   Heard / 听证 — design tokens v3 "Reading Room"
+   Authority: memory/heard-v3/DESIGN-SYSTEM.md. Supersedes v2 "Studio".
 
    TOKEN LAYER ONLY. Screens inherit; nobody restyles a screen with literal
    hex. If a value is not here, it does not exist.
 
-   Character: a recording studio, not a document viewer. Warm dark default,
-   layered surfaces with real depth, serif display type, one signal accent
-   (the tape's red-orange) plus gold reserved for the shape of sound
-   (waveforms/progress). Still no --danger red, no success green: ✓ heard
-   is a receipt, not a verdict.
+   Character: a document you can press to hear. Paper first, ink chrome,
+   and ONE saturated signal — reserved exclusively for sound that can play
+   right now (playhead, record dot, karaoke wash, press-to-hear chips).
+   Everything that is not about sound is neutral. Serif display names the
+   object; mono names the clock. Still no --danger red, no success green:
+   ✓ heard is a receipt, not a verdict.
    ============================================================ */
 
 :root,
 :root[data-theme='ink'] {
-  /* --- Surfaces (5 levels — depth is the point) --- */
-  --bg: #161210;
-  --bg-1: #1E1813;
-  --surface: #262019;
-  --surface-2: #2F2820;
-  --surface-3: #3A3127;
-  --hairline: rgba(255, 240, 220, 0.08);
-  --hairline-2: rgba(255, 240, 220, 0.14);
+  /* --- Surfaces (neutral warm black — the brown cast of v2 is gone) --- */
+  --bg: #131211;
+  --bg-1: #1A1917;
+  --surface: #201E1C;
+  --surface-2: #282623;
+  --surface-3: #32302B;
+  --hairline: rgba(255, 250, 240, 0.07);
+  --hairline-2: rgba(255, 250, 240, 0.13);
 
   /* --- Ink --- */
-  --ink: #F2ECE2;
-  --ink-2: #B5AB9C;
-  --ink-3: #837A6C;
+  --ink: #EFECE6;
+  --ink-2: #A8A299;
+  --ink-3: #746F66;
 
-  /* --- The tape accent --- */
-  --anchor: #FF6B35;
-  --anchor-soft: #FF8A55;
-  --anchor-deep: #E0501E;
+  /* --- The signal (sound that can play right now — nothing else) --- */
+  --anchor: #F0562A;
+  --anchor-soft: #F57E52;
+  --anchor-deep: #D9481C;
   --anchor-ink: #FFFFFF;
-  --anchor-grad: linear-gradient(135deg, #FF8A55 0%, #E0501E 100%);
+  --anchor-grad: linear-gradient(135deg, #F57E52 0%, #D9481C 100%);
 
-  /* --- The shape of sound (waveform / progress fill only, never text) --- */
-  --gold: #E8B84B;
+  /* --- The shape of sound: played audio. Same family as the signal,
+         one step quieter — the waveform is ONE hue, not two. --- */
+  --gold: #E07048;
 
   /* --- Karaoke --- */
-  --wash: rgba(255, 138, 85, 0.26);
-  --wash-2: rgba(255, 138, 85, 0.10);
+  --wash: rgba(240, 86, 42, 0.24);
+  --wash-2: rgba(240, 86, 42, 0.09);
 
   /* --- State --- */
   --heard: var(--ink);
@@ -51,37 +53,40 @@
   --error-ink: var(--ink);
   --error-rule: var(--anchor);
 
-  /* --- Depth --- */
-  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.18);
-  --elev-2: 0 4px 12px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.28);
-  --elev-3: 0 8px 24px rgba(0, 0, 0, 0.45), 0 24px 64px rgba(0, 0, 0, 0.35);
-  --shadow-player: 0 -1px 0 var(--hairline-2), 0 -12px 32px rgba(0, 0, 0, 0.45);
+  /* --- Depth: hairlines carry structure; shadow is for the ONE floating
+         instrument (the player) and transient sheets only. --- */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.30), 0 2px 8px rgba(0, 0, 0, 0.14);
+  --elev-2: 0 4px 12px rgba(0, 0, 0, 0.34), 0 12px 32px rgba(0, 0, 0, 0.22);
+  --elev-3: 0 8px 24px rgba(0, 0, 0, 0.40), 0 24px 64px rgba(0, 0, 0, 0.30);
+  --shadow-player: 0 -1px 0 var(--hairline-2), 0 -12px 32px rgba(0, 0, 0, 0.40);
   color-scheme: dark;
 }
 
 :root[data-theme='paper'] {
-  --bg: #F7F3EB;
-  --bg-1: #F1ECE2;
+  /* Paper is the canonical presentation (Granola's calm, Apple's daylight):
+     near-white warm paper, true ink, structure from hairlines not shadows. */
+  --bg: #FAF8F4;
+  --bg-1: #F3F0E9;
   --surface: #FFFFFF;
-  --surface-2: #F3EEE4;
-  --surface-3: #EAE3D6;
-  --hairline: rgba(60, 45, 25, 0.10);
-  --hairline-2: rgba(60, 45, 25, 0.18);
+  --surface-2: #F5F2EB;
+  --surface-3: #EBE7DD;
+  --hairline: rgba(28, 24, 18, 0.09);
+  --hairline-2: rgba(28, 24, 18, 0.16);
 
-  --ink: #201B15;
-  --ink-2: #635A4D;
-  --ink-3: #8F8677;
+  --ink: #1B1813;
+  --ink-2: #5D574C;
+  --ink-3: #9A937F;
 
-  --anchor: #E0501E;
-  --anchor-soft: #FF8A55;
-  --anchor-deep: #B8410F;
+  --anchor: #D9481C;
+  --anchor-soft: #EF7048;
+  --anchor-deep: #B93A14;
   --anchor-ink: #FFFFFF;
-  --anchor-grad: linear-gradient(135deg, #FF7A42 0%, #C9451A 100%);
+  --anchor-grad: linear-gradient(135deg, #EF7048 0%, #B93A14 100%);
 
-  --gold: #C29237;
+  --gold: #C95A2E;
 
-  --wash: rgba(224, 80, 30, 0.16);
-  --wash-2: rgba(224, 80, 30, 0.07);
+  --wash: rgba(217, 72, 28, 0.15);
+  --wash-2: rgba(217, 72, 28, 0.06);
 
   --heard: var(--ink);
   --focus: var(--anchor);
@@ -90,10 +95,10 @@
   --error-ink: var(--ink);
   --error-rule: var(--anchor);
 
-  --elev-1: 0 1px 2px rgba(40, 25, 10, 0.10), 0 2px 10px rgba(40, 25, 10, 0.07);
-  --elev-2: 0 4px 12px rgba(40, 25, 10, 0.12), 0 12px 32px rgba(40, 25, 10, 0.10);
-  --elev-3: 0 8px 24px rgba(40, 25, 10, 0.14), 0 24px 64px rgba(40, 25, 10, 0.12);
-  --shadow-player: 0 -1px 0 var(--hairline-2), 0 -12px 32px rgba(40, 25, 10, 0.12);
+  --elev-1: 0 1px 2px rgba(45, 35, 20, 0.08), 0 2px 10px rgba(45, 35, 20, 0.05);
+  --elev-2: 0 4px 12px rgba(45, 35, 20, 0.10), 0 12px 32px rgba(45, 35, 20, 0.08);
+  --elev-3: 0 8px 24px rgba(45, 35, 20, 0.12), 0 24px 64px rgba(45, 35, 20, 0.10);
+  --shadow-player: 0 -1px 0 var(--hairline-2), 0 -12px 32px rgba(45, 35, 20, 0.10);
   color-scheme: light;
 }
 
@@ -163,8 +168,8 @@
 
   /* ------------------------------------------------------- chrome heights */
   --appbar-h: 56px;
-  --player-bar-h: 76px;           /* desktop */
-  --player-sheet-collapsed: 92px; /* mobile */
+  --player-bar-h: 88px;           /* desktop */
+  --player-sheet-collapsed: 152px; /* mobile */
   --player-sheet-mid: 42vh;
 
   /* --------------------------------------------- timecode chip anatomy §5 */

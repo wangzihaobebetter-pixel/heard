@@ -53,9 +53,10 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
   text-align: left;
   padding: 0 var(--space-2);
   font-family: var(--font-display);
-  font-size: var(--size-title);
-  line-height: var(--lh-title);
+  font-size: 22px;
+  line-height: 30px;
   font-weight: var(--weight-medium);
+  letter-spacing: -0.01em;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -341,6 +342,10 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
      the transcript stays put on the right. */
   .iv__body { flex-direction: row; }
 
+  .iv__pane {
+    padding-bottom: calc(var(--player-bar-h) + 64px);
+  }
+
   .iv__body[data-tab='notes'] .iv__transcript,
   .iv__body[data-tab='ai'] .iv__transcript,
   .iv__body[data-tab='transcript'] .iv__notes { display: block; }
@@ -469,3 +474,19 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
   align-self: flex-start;
 }
 .iv__credit-line { margin: 0; line-height: 1.5; }
+
+/* ============================================== v3 D1: authorship is legible
+   (§6 principle 3, the Granola black/gray convention). The user's notes are
+   INK — full strength, with a standing left rule like a margin stroke. The
+   machine's notes are visibly one register quieter. Never mixed ambiguously. */
+
+.iv__section[data-section='yours'] .note {
+  border-left: 2px solid var(--ink);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.iv__section[data-section='yours'] .note__text { color: var(--ink); font-weight: var(--weight-medium); }
+
+.iv__section[data-section='point'] .note__text,
+.iv__section[data-section='quote'] .note__text { color: var(--ink-2); }
+.iv__section[data-section='quote'] .note__text { font-style: italic; }
