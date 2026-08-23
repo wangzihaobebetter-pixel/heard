@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Heard — engine harness (WP1)</title>
+    <!-- Silences a 404 that would otherwise look like a real failure in the log. -->
+    <link rel="icon" href="data:," />
+    <style>
+      body { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 24px; max-width: 900px; }
+      h1 { font-size: 15px; margin: 0 0 4px; }
+      p.sub { color: #666; margin: 0 0 20px; }
+      button { font: inherit; padding: 6px 10px; margin: 0 6px 6px 0; }
+      pre { background: #f4f4f4; padding: 12px; overflow: auto; max-height: 45vh; white-space: pre-wrap; }
+      #status { font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <h1>Heard / 听证 — audio engine harness</h1>
+    <p class="sub">
+      WP1 only. Drives <code>src/audio/*</code> directly, with no UI in the way.
+      <code>verify-engine.mjs</code> calls the same <code>window.engine</code> methods the buttons do.
+    </p>
+
+    <div>
+      <button data-run="direct">≤25 MB direct path</button>
+      <button data-run="chunkedA">&gt;25 MB chunked — 16 k mono</button>
+      <button data-run="chunkedB">&gt;25 MB chunked — 44.1 k resample</button>
+      <button data-run="player">player · latency · karaoke</button>
+      <button data-run="align">align</button>
+      <button data-run="sample">A3 sample door</button>
+    </div>
+
+    <p>status: <span id="status">idle</span></p>
+    <pre id="out">—</pre>
+
+    <!-- The one audio element for the whole app (DESIGN §5). -->
+    <audio id="audio" preload="auto"></audio>
+
+    <script type="module" src="./engine.ts"></script>
+  </body>
+</html>

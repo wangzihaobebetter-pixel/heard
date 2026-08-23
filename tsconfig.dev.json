@@ -1,0 +1,5 @@
+{
+  "//": "WP1 only. The repo's tsconfig covers `src` as a whole and is WP0's; this one type-checks the audio engine and its dev harness in isolation so a sibling package's in-flight screen cannot mask (or be blamed for) an engine error. Imports are still followed, so the WP0 contracts are checked at the boundary.",
+  "extends": "./tsconfig.json",
+  "include": ["dev", "src/audio"]
+}
