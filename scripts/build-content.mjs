@@ -84,32 +84,55 @@ function decodeEntities(s) {
  * Works for both the HTML pages and the LOC TEI XML (speaker labels and stage
  * notes survive as plain text, which is exactly what we want to match against).
  */
-function officialTokens(file) {
+function officialText(file) {
   const raw = fs.readFileSync(file, 'utf8');
-  const text = decodeEntities(
+  return decodeEntities(
     raw
       .replace(/<script[\s\S]*?<\/script>/gi, ' ')
       .replace(/<style[\s\S]*?<\/style>/gi, ' ')
       .replace(/<!--[\s\S]*?-->/g, ' ')
       .replace(/<[^>]+>/g, ' '),
   );
-  return tokenize(text);
 }
 
-/** Best local match of `quote` in the official token stream (make-sample §5). */
-function corroborate(quote, other) {
-  const Q = tokenize(quote);
+/**
+ * Dashes and hyphens are orthography, not speech, and publishers disagree with
+ * the ASR in both directions: FDR's transcript sets em-dashes tight ("1941—a
+ * date"), the JFK typescript writes "forward--and", Yale writes
+ * "state-of-the-art" where whisper split four words — and Reagan's transcript
+ * writes "fainthearted" as one word where whisper hyphenated. So Layer 2 is
+ * scored under BOTH conventions — every dash a separator, and every dash
+ * removed — with the same treatment on both sides each time, and the better
+ * score wins. Symmetric normalisation can only align styles, never blur a
+ * genuine word mismatch.
+ */
+const splitDashes = (s) => tokenize(String(s).replace(/[–—‒-]+/g, ' '));
+// lib normToken already folds a dash-joined token into one word ("faint-hearted"
+// → "fainthearted"), so plain tokenize IS the fused convention.
+const fuseDashes = (s) => tokenize(String(s).replace(/--+/g, '-'));
+
+/** Best local match of `Q` in the token stream `other` (make-sample §5). */
+function bestLocal(Q, other) {
   const heads = new Set(Q.slice(0, 3));
-  let best = { r: 0, at: 0, len: Q.length };
+  let best = 0;
   for (let i = 0; i < other.length; i++) {
     if (!heads.has(other[i])) continue;
     for (let L = Math.max(1, Q.length - 8); L <= Q.length + 8; L++) {
       if (i + L > other.length) break;
       const r = similarity(Q, other.slice(i, i + L));
-      if (r > best.r) best = { r, at: i, len: L };
+      if (r > best) best = r;
     }
   }
-  return { ratio: +best.r.toFixed(4), match: other.slice(best.at, best.at + best.len).join(' ') };
+  return best;
+}
+
+/** Layer 2: `quote` against the official document, under both dash conventions. */
+function corroborate(quote, official) {
+  const r = Math.max(
+    bestLocal(splitDashes(quote), official.split),
+    bestLocal(fuseDashes(quote), official.fused),
+  );
+  return { ratio: +r.toFixed(4) };
 }
 
 /* --------------------------------------------------------------------- peaks */
@@ -207,13 +230,17 @@ function buildEntry(entry) {
   const words = buildWords(SRC(entry.id, 'whisper.json'), SRC(entry.id, 'full-16k.wav'));
   const segments = buildSegments(SRC(entry.id, 'whisper.json'), words);
   const peaks = computePeaks(SRC(entry.id, 'full-16k.wav'));
-  const OT = officialTokens(SRC(entry.id, `official.${entry.official}`));
+  const docText = officialText(SRC(entry.id, `official.${entry.official}`));
+  const OT = { split: splitDashes(docText), fused: fuseDashes(docText) };
   const minCorrob = entry.minCorroboration ?? MIN_CORROBORATION;
 
   // Whole-transcript coverage — the "is this even the right document" check
   // that caught the three bad official files (material-audit.md).
-  const asrTokens = tokenize(words.map((w) => w.t).join(' '));
-  const coverage = +similarity(asrTokens, OT).toFixed(3);
+  const asrText = words.map((w) => w.t).join(' ');
+  const coverage = +Math.max(
+    similarity(splitDashes(asrText), OT.split),
+    similarity(fuseDashes(asrText), OT.fused),
+  ).toFixed(3);
 
   const problems = [];
   const rows = [];
