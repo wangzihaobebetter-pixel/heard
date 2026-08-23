@@ -162,8 +162,10 @@ export interface UiSettings {
   theme: Theme;
   /** "Keep the recording on this device" (DESIGN §4.3) */
   keepAudio: boolean;
-  /** playback rate, persisted (1 | 1.25 | 1.5 | 2) */
+  /** playback rate, persisted (0.5–3, store/presets SPEEDS) */
   speed: number;
+  /** skip between-words silence during free playback (v3 B3, §4.2) */
+  skipSilence?: boolean;
 }
 
 export interface Settings {

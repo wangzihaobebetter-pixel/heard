@@ -49,6 +49,16 @@ export interface PlayerProps {
   onKeepListening: () => void;
   onPlayAgain: () => void;
   onSpeed: (rate: number) => void;
+  /** ±15 s transport skips (v3 B3, §4.2) */
+  onSkip: (direction: 1 | -1) => void;
+  /** skip-silence toggle — free playback jumps over between-words gaps */
+  skipSilence: boolean;
+  onSkipSilence: (next: boolean) => void;
+  /** study mode: play only the noted/marked moments, in order (§4.2) */
+  onlyNotes: boolean;
+  onOnlyNotes: (next: boolean) => void;
+  /** whether there are notes to study — Only-notes disables without them */
+  notesAvailable: boolean;
   onPin: () => void;
   onLocate: () => void;
   onBackToNote: () => void;
@@ -63,6 +73,7 @@ export default function Player(props: PlayerProps) {
     snap, peaks, hasAudio, durationSec, stopped, nudged, notice, height, onHeight,
     onToggle, onSeek, onNudge, onKeepListening, onPlayAgain, onSpeed, onPin,
     onLocate, onBackToNote, currentParagraph, fullTranscript,
+    onSkip, skipSilence, onSkipSilence, onlyNotes, onOnlyNotes, notesAvailable,
   } = props;
   const t = useT();
   const [scrubbing, setScrubbing] = useState(false);
@@ -141,6 +152,25 @@ export default function Player(props: PlayerProps) {
                 : <span className="icon-play" aria-hidden="true" />}
             </button>
 
+            <button
+              type="button"
+              className="player__skipbtn timecode"
+              data-testid="skip-back"
+              aria-label={t('interview.skipBack')}
+              onClick={() => onSkip(-1)}
+            >
+              −15
+            </button>
+            <button
+              type="button"
+              className="player__skipbtn timecode"
+              data-testid="skip-forward"
+              aria-label={t('interview.skipForward')}
+              onClick={() => onSkip(1)}
+            >
+              +15
+            </button>
+
             <span className="player__time timecode" data-testid="player-time">{readout}</span>
 
             <div className="player__track" data-testid="player-track" data-wave={peaks ? 'true' : 'false'}>
@@ -188,6 +218,30 @@ export default function Player(props: PlayerProps) {
               onClick={() => onSpeed(SPEEDS[(SPEEDS.indexOf(snap.speed as 1) + 1) % SPEEDS.length])}
             >
               {snap.speed}×
+            </button>
+          </div>
+
+          {/* Listening modes (v3 B3): honest toggles, not hidden settings —
+              which mode you're in is visible whenever the player is. */}
+          <div className="player__modes" data-testid="player-modes">
+            <button
+              type="button"
+              className="modechip"
+              data-testid="skip-silence"
+              aria-pressed={skipSilence}
+              onClick={() => onSkipSilence(!skipSilence)}
+            >
+              {t('interview.skipSilence')}
+            </button>
+            <button
+              type="button"
+              className="modechip"
+              data-testid="only-notes"
+              aria-pressed={onlyNotes}
+              disabled={!notesAvailable}
+              onClick={() => onOnlyNotes(!onlyNotes)}
+            >
+              {t('interview.onlyNotes')}
             </button>
           </div>
 

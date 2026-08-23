@@ -48,7 +48,13 @@ export const CHUNK_RETRIES = 2;
 export const PRE_ROLL_SEC = 1.0;
 export const PRE_ROLL_APPROX_SEC = 2.5;
 export const POST_ROLL_SEC = 0.8;
-export const SPEEDS = [1, 1.25, 1.5, 2] as const;
+export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3] as const;
+/** ±15 s transport skips (v3 B3, PRODUCT-SPEC §4.2). */
+export const SKIP_SEC = 15;
+/** A between-words gap must be at least this long before skip-silence acts. */
+export const SKIP_SILENCE_MIN_GAP_SEC = 1.2;
+/** How much of a skipped pause is still played, so cuts don't clip breaths. */
+export const SKIP_SILENCE_HOLD_SEC = 0.35;
 export const NUDGES = [-3, -1, 1, 3] as const;
 
 /** Accepted input formats (DESIGN §4.3). */

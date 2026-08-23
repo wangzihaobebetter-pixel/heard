@@ -13,14 +13,14 @@
  * WP2 does not own.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Anchor, Note } from '../types';
+import type { Anchor, Note, Word } from '../types';
 import {
   selectInterview, selectNotes, selectTranscript, usePlayer, useStore,
 } from '../store';
 import { POST_ROLL_SEC } from '../store/presets';
 import { getAudio, putAudio } from '../lib/storage';
 import { ensurePeaks } from '../audio/peaks';
-import { formatBytes, formatDuration, minutesOf } from '../lib/time';
+import { formatBytes, formatDuration, formatTimecode, minutesOf } from '../lib/time';
 import { useT } from '../i18n';
 import { href, navigate } from '../router';
 import { getPlayer } from '../audio/player';
@@ -46,6 +46,7 @@ export default function Interview({ id }: { id: string }) {
   const transcript = useStore(selectTranscript(id));
   const notes = useStore(selectNotes(id));
   const speed = useStore((s) => s.settings.ui.speed);
+  const skipSilence = useStore((s) => s.settings.ui.skipSilence ?? false);
 
   /**
    * The `<audio>` node is tracked in state, not just a ref, because on a
@@ -73,6 +74,10 @@ export default function Interview({ id }: { id: string }) {
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [stopped, setStopped] = useState(false);
   const [nudged, setNudged] = useState(false);
+  /* v3 B3: study mode — play only the noted moments, in order. Session-level
+     by design: a filter you left on yesterday silently eating today's lecture
+     would be worse than re-pressing one chip. */
+  const [onlyNotes, setOnlyNotes] = useState(false);
   const [selection, setSelection] = useState<SelectionInfo | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -171,6 +176,7 @@ export default function Interview({ id }: { id: string }) {
 
   useEffect(() => { if (audioEl) player.attach(audioEl); }, [player, audioEl]);
   useEffect(() => { player.setSpeed(speed); }, [player, speed]);
+  useEffect(() => { player.setSkipSilence(skipSilence); }, [player, skipSilence]);
   // The controller is a singleton for the whole app, so leaving this screen
   // stops the tape — it does not destroy the instrument.
   useEffect(() => () => player.pause(), [player]);
@@ -216,6 +222,21 @@ export default function Interview({ id }: { id: string }) {
     afterglowTimer.current = window.setTimeout(() => setAfterglowId(null), AFTERGLOW_MS);
   }, [playback.playing, playback.currentTime, playback.span, pressedId]);
 
+  /* v3 B3 study mode: when a span's receipt lands and Only-notes is on, the
+     next noted moment plays by itself — mark during the lecture, listen to
+     just the marks that night (§4.2). */
+  const pressRef = useRef<(note: Note) => void>(() => undefined);
+  useEffect(() => {
+    if (!onlyNotes || !stopped || !playback.span) return;
+    const spanS = playback.span.s;
+    const next = [...notes]
+      .sort((a, b) => a.anchor.s - b.anchor.s)
+      .find((n) => n.anchor.s > spanS + 0.01);
+    if (!next) { setOnlyNotes(false); return; }
+    const timer = window.setTimeout(() => pressRef.current(next), 450);
+    return () => window.clearTimeout(timer);
+  }, [onlyNotes, stopped, playback.span, notes]);
+
   /* -------------------------------------------------------------- pressing */
 
   const scrollToSpan = useCallback((anchor: Anchor) => {
@@ -253,6 +274,20 @@ export default function Interview({ id }: { id: string }) {
     window.requestAnimationFrame(() => scrollToSpan(note.anchor));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, hasAudio, scrollToSpan, tab, firstRunDismissed]);
+
+  useEffect(() => { pressRef.current = press; }, [press]);
+
+  /** Only-notes on = start studying now: play the first noted moment at or
+      after the playhead. Off = plain free listening, nothing else changes. */
+  const toggleOnlyNotes = useCallback((next: boolean) => {
+    setOnlyNotes(next);
+    if (!next || playback.playing) return;
+    const from = player.currentTime();
+    const ordered = [...notes].sort((a, b) => a.anchor.s - b.anchor.s);
+    const target = ordered.find((n) => n.anchor.s >= from) ?? ordered[0];
+    if (target) press(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes, playback.playing, press, player]);
 
   function dismissFirstRun() {
     setFirstRunDismissed(true);
@@ -436,6 +471,29 @@ export default function Interview({ id }: { id: string }) {
   const points = notes.filter((n) => n.kind === 'point');
   const quotable = notes.filter((n) => n.kind === 'quote');
   const yours = notes.filter((n) => n.kind === 'yours');
+
+  /* v3 B3 marks review (§4.3): a ⚑ pressed during recording was intent
+     captured, not a note taken. Once a transcript exists, each one surfaces
+     with its surrounding words and one tap turns it into a real note pinned
+     to the word under it — or removes it, which is also a decision. */
+  const reviewable = (transcript?.words.length ?? 0) > 0 && !listening && !reading
+    ? yours.filter((n) => n.anchor.quality === 'unpinned' && n.anchor.pinnedByUser)
+    : [];
+
+  const resolveMark = useCallback((note: Note, text: string) => {
+    const words = transcript?.words ?? [];
+    if (words.length === 0) return;
+    let wi = wordAt(words, note.anchor.s);
+    if (wi < 0) {
+      wi = words.findIndex((w) => w.s >= note.anchor.s);
+      if (wi < 0) wi = words.length - 1;
+    }
+    const w = words[wi];
+    useStore.getState().updateNote(id, note.id, {
+      text: text.trim() || note.text,
+      anchor: { s: w.s, e: w.e, wi, wj: wi + 1, quality: 'word', pinnedByUser: true },
+    });
+  }, [id, transcript]);
   const heardCount = notes.filter((n) => n.heard).length;
 
   const contextLang = interview.lang === 'auto' ? (transcript?.lang ?? '—') : interview.lang;
@@ -504,12 +562,30 @@ export default function Interview({ id }: { id: string }) {
         <p className="iv__pending card-note" data-testid="reading-back">{t('interview.readingBack')}</p>
       ) : null}
 
+      {reviewable.length > 0 ? (
+        <div className="iv__review" data-testid="marks-review">
+          <h2 className="micro iv__sectionlabel">{t('interview.reviewTitle', { n: reviewable.length })}</h2>
+          {reviewable.map((note) => (
+            <MarkReviewRow
+              key={note.id}
+              note={note}
+              words={transcript?.words ?? []}
+              onHear={() => press(note)}
+              onKeep={(text) => resolveMark(note, text)}
+              onRemove={() => useStore.getState().deleteNote(id, note.id)}
+            />
+          ))}
+        </div>
+      ) : null}
+
       {!listening && !reading ? (
         <div className="iv__sections" data-testid="note-sections">
           {[
             { key: 'point', label: t('interview.sectionPoints'), rows: points },
             { key: 'quote', label: t('interview.sectionQuotable'), rows: quotable },
-            { key: 'yours', label: t('interview.sectionYours'), rows: yours },
+            // A mark being reviewed above must not also render as a note row —
+            // one moment, one place, until the person decides what it is.
+            { key: 'yours', label: t('interview.sectionYours'), rows: yours.filter((n) => !reviewable.includes(n)) },
           ].filter((s) => s.rows.length > 0).map((section) => (
             <div className="iv__section" key={section.key} data-section={section.key}>
               <h2 className="micro iv__sectionlabel">{section.label}</h2>
@@ -710,6 +786,12 @@ export default function Interview({ id }: { id: string }) {
         onKeepListening={() => { setStopped(false); player.keepListening(); }}
         onPlayAgain={() => { setStopped(false); void player.playAgain(); }}
         onSpeed={(rate) => useStore.getState().setSettings({ ui: { speed: rate } })}
+        onSkip={(direction) => { setStopped(false); player.skip(direction); }}
+        skipSilence={skipSilence}
+        onSkipSilence={(next) => useStore.getState().setSettings({ ui: { skipSilence: next } })}
+        onlyNotes={onlyNotes}
+        onOnlyNotes={toggleOnlyNotes}
+        notesAvailable={notes.length > 0}
         onPin={() => {
           if (!pressedNote) return;
           const s = player.currentTime();
@@ -756,5 +838,62 @@ export default function Interview({ id }: { id: string }) {
 
       <span className="sr-only" data-testid="heard-count">{t('unit.heardCount', { n: heardCount })}</span>
     </main>
+  );
+}
+
+/* ------------------------------------------------------- v3 B3: mark review */
+
+/** ±20 s of transcript on either side of the mark (§4.3 marks review). */
+function markContext(words: Word[], at: number): { before: string; after: string } {
+  const WINDOW = 20;
+  const before: string[] = [];
+  const after: string[] = [];
+  for (const w of words) {
+    if (w.e <= at && w.e >= at - WINDOW) before.push(w.t);
+    else if (w.s >= at && w.s <= at + WINDOW) after.push(w.t);
+  }
+  return { before: before.join(' '), after: after.join(' ') };
+}
+
+function MarkReviewRow({ note, words, onHear, onKeep, onRemove }: {
+  note: Note;
+  words: Word[];
+  onHear: () => void;
+  onKeep: (text: string) => void;
+  onRemove: () => void;
+}) {
+  const t = useT();
+  // '⚑' is the recorder's placeholder, not something a person wrote — an
+  // empty field invites the real note; a typed live note arrives intact.
+  const [text, setText] = useState(note.text === '⚑' ? '' : note.text);
+  const ctx = useMemo(() => markContext(words, note.anchor.s), [words, note.anchor.s]);
+
+  return (
+    <div className="markreview" data-testid="mark-review-row">
+      <div className="markreview__context">
+        <button type="button" className="tc timecode" onClick={onHear}>
+          {formatTimecode(note.anchor.s)}
+        </button>
+        <p className="markreview__words secondary">
+          …{ctx.before} <span className="markreview__flag" aria-hidden="true">⚑</span> <strong>{ctx.after}</strong>…
+        </p>
+      </div>
+      <div className="markreview__actions">
+        <input
+          className="input markreview__input"
+          type="text"
+          placeholder={t('interview.reviewPlaceholder')}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') onKeep(text); }}
+        />
+        <button type="button" className="btn btn--secondary" data-testid="mark-keep" onClick={() => onKeep(text)}>
+          {t('interview.reviewKeep')}
+        </button>
+        <button type="button" className="btn btn--quiet" data-testid="mark-remove" onClick={onRemove}>
+          {t('interview.reviewRemove')}
+        </button>
+      </div>
+    </div>
   );
 }

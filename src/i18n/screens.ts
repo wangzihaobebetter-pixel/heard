@@ -270,3 +270,28 @@ registerStrings('library', {
     'recoveredDiscard': '丢弃',
   },
 });
+
+/* ------------------------------------------------- v3 B3: playback + review */
+
+registerStrings('interview', {
+  en: {
+    'skipBack': 'Back 15 seconds',
+    'skipForward': 'Forward 15 seconds',
+    'skipSilence': 'Skip silence',
+    'onlyNotes': 'Only notes',
+    'reviewTitle': 'Review your marks ({n})',
+    'reviewPlaceholder': 'What was this moment?',
+    'reviewKeep': 'Keep',
+    'reviewRemove': 'Remove',
+  },
+  'zh-CN': {
+    'skipBack': '后退 15 秒',
+    'skipForward': '前进 15 秒',
+    'skipSilence': '跳过静音',
+    'onlyNotes': '只听标记',
+    'reviewTitle': '整理你的标记（{n}）',
+    'reviewPlaceholder': '这一刻是什么？',
+    'reviewKeep': '保留',
+    'reviewRemove': '删除',
+  },
+});

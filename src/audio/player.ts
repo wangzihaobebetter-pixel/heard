@@ -35,7 +35,10 @@
  *     the nudge cluster; this is the machine-facing half.
  */
 import type { Anchor, Word } from '../types';
-import { NUDGES, POST_ROLL_SEC, PRE_ROLL_APPROX_SEC, PRE_ROLL_SEC } from '../store/presets';
+import {
+  NUDGES, POST_ROLL_SEC, PRE_ROLL_APPROX_SEC, PRE_ROLL_SEC,
+  SKIP_SEC, SKIP_SILENCE_HOLD_SEC, SKIP_SILENCE_MIN_GAP_SEC,
+} from '../store/presets';
 import { getAudio, putAudio } from '../lib/storage';
 import { SAMPLE_AUDIO_URL, SAMPLE_ID } from '../sample/schema';
 import { starterAudioUrl } from '../content/load';
@@ -69,6 +72,7 @@ export class Player {
   private span: { s: number; e: number } | null = null;
   private mode: 'span' | 'free' = 'free';
   private stopAt = Infinity;
+  private skipSilence = false;
 
   private raf = 0;
   private cursor = -1;
@@ -239,6 +243,28 @@ export class Player {
     this.writeTime(el.currentTime, true);
   }
 
+  /**
+   * ±15 s transport skip (v3 B3, §4.2). Leaves span mode: skipping is a
+   * navigation, and a span that auto-stops after being jumped away from
+   * would stop somewhere the user never meant.
+   */
+  skip(direction: 1 | -1): void {
+    const el = this.el;
+    if (!el) return;
+    if (this.mode === 'span') this.keepListening();
+    this.seek(el.currentTime + direction * SKIP_SEC);
+  }
+
+  /**
+   * Skip-silence (v3 B3, §4.2, the Apple iOS 26 table stake). The silence map
+   * is the transcript itself: any between-words gap over the threshold is
+   * dead air — no audio analysis, works for every transcribed recording.
+   * Free-mode only: a pressed span plays exactly what its note claims.
+   */
+  setSkipSilence(on: boolean): void {
+    this.skipSilence = on;
+  }
+
   pause(): void {
     this.el?.pause();
   }
@@ -361,6 +387,30 @@ export class Player {
       this.setCursor(this.findWord(el.currentTime));
       usePlayer.getState().setPlayer({ playing: false });
       return;
+    }
+
+    // Skip-silence: when the playhead sits in a between-words gap longer than
+    // the threshold, jump to just before the next word. A hold keeps the first
+    // slice of every pause so cuts land on breaths, not mid-consonant.
+    if (this.skipSilence && this.mode === 'free' && !el.paused && this.words.length) {
+      const n = this.words.length;
+      let lo = 0, hi = n - 1, next = n;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (this.words[mid].s > t) { next = mid; hi = mid - 1; } else lo = mid + 1;
+      }
+      const prevEnd = next > 0 ? this.words[next - 1].e : 0;
+      if (next < n && t >= prevEnd) {
+        const gap = this.words[next].s - prevEnd;
+        const target = this.words[next].s - 0.12;
+        if (gap >= SKIP_SILENCE_MIN_GAP_SEC && t >= prevEnd + SKIP_SILENCE_HOLD_SEC && target > t) {
+          el.currentTime = target;
+          this.writeTime(target, true);
+          this.setCursor(this.findWord(target));
+          this.raf = requestAnimationFrame(this.tick);
+          return;
+        }
+      }
     }
 
     this.writeTime(t, false);

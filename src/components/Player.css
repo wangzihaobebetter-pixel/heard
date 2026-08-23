@@ -323,3 +323,39 @@
 @media (prefers-reduced-motion: reduce) {
   .player, .player__after { transition-duration: 0ms; }
 }
+
+/* ------------------------------------------------ v3 B3: skips and modes */
+
+.player__skipbtn {
+  flex: none;
+  height: var(--chip-h);
+  padding: 0 var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-chip);
+  font-size: var(--size-timecode);
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+}
+.player__skipbtn:hover { color: var(--ink); border-color: var(--hairline); }
+
+.player__modes {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) 0;
+}
+
+.modechip {
+  height: var(--chip-h);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-chip);
+  font-size: var(--size-micro);
+  color: var(--ink-2);
+  background: transparent;
+}
+.modechip[aria-pressed='true'] {
+  color: var(--bg);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.modechip:disabled { opacity: 0.4; }

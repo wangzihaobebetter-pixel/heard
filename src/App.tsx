@@ -18,6 +18,7 @@ import Bring from './screens/Bring';
 import Record from './screens/Record';
 import Settings from './screens/Settings';
 import { useRecorder } from './audio/recorder';
+import { maybeRunIntake } from './audio/intake';
 import { formatDuration } from './lib/time';
 
 function applyTheme(theme: 'system' | 'paper' | 'ink') {
@@ -58,6 +59,18 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => { setLang(resolveLang(lang)); }, [lang]);
+
+  /* v3 B3: a provider key arriving is what every `waiting` recording was
+     waiting FOR — sweep them instead of making the user re-open each one.
+     Also collects interviews stranded at `listening` by a closed tab. */
+  const sttKey = useStore((s) => s.settings.stt.key);
+  useEffect(() => {
+    if (!hydrated || !sttKey.trim()) return;
+    const { interviews } = useStore.getState();
+    for (const iv of Object.values(interviews)) {
+      if (iv.status === 'waiting' || iv.status === 'listening') maybeRunIntake(iv.id);
+    }
+  }, [hydrated, sttKey]);
 
   /* First run lands INSIDE a real recording (DESIGN §4, §6 moment 1; v3
      PRODUCT-SPEC §4.7) — not on a welcome, not on the Library. The starter
