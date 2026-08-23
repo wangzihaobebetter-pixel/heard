@@ -1,0 +1,66 @@
+/* Bring — WP3 (DESIGN §4.3, §7). A single column that reads top to bottom:
+   what you brought, what to call it, what language, whether to keep it, the
+   key if we need one, and the button. */
+
+.bring { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* --------------------------------------------------------- the chosen file */
+
+/* One row: what you brought on the left, the way out on the right. Stacking
+   these cost about 90 px and pushed "Listen once" off a 390x844 screen. */
+.bring__file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+}
+
+.bring__file-text { min-width: 0; }
+
+.bring__filename {
+  margin: 0;
+  font-size: var(--size-body);
+  font-weight: var(--weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bring__filemeta { margin: 0; color: var(--ink-2); }
+
+.bring__change { flex: 0 0 auto; }
+
+/* ------------------------------------------------------------- key inline */
+
+.bring__key {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+}
+
+/* -------------------------------------------------------------- the button */
+
+.bring__go {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.bring__estimate { margin: 0; color: var(--ink-3); }
+
+@media (min-width: 960px) {
+  /* `.screen.settings` / `.screen.bring`, not the bare class: WP0's shell.css
+     also sets a max-width on `.screen` and is bundled after this file, so an
+     equal-specificity rule here silently loses. */
+  .screen.bring { max-width: 640px; }
+  .bring__go .button { align-self: flex-start; width: auto; min-width: 260px; }
+}

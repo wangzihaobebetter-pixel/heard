@@ -1,0 +1,81 @@
+/* KeyField — WP3. A form that looks like part of the document, not like a
+   settings dialog dropped on top of one. */
+
+.keyfield { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.keyfield__presets {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-chip);
+  overflow: hidden;
+  align-self: flex-start;
+  max-width: 100%;
+  flex-wrap: nowrap;
+}
+
+.keyfield__preset {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  font-size: var(--size-secondary);
+  color: var(--ink-2);
+  border-right: 1px solid var(--hairline);
+  background: var(--surface);
+  white-space: nowrap;
+  transition: background var(--dur-state) var(--ease-move),
+              color var(--dur-state) var(--ease-move);
+}
+
+.keyfield__preset:last-child { border-right: none; }
+
+.keyfield__preset[data-selected='yes'] {
+  background: var(--surface-2);
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.keyfield__row { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.keyfield__label { color: var(--ink-3); }
+
+.keyfield__input {
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: 0 var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-chip);
+  font-size: var(--size-body);
+}
+
+.keyfield__input:focus-visible { border-color: var(--anchor); }
+
+.keyfield__hint { margin: 0; color: var(--ink-3); }
+
+.keyfield__advanced { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.keyfield__disclosure {
+  align-self: flex-start;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-2);
+}
+
+/* The Test button belongs to the block above it, so it sits tight under the
+   fields rather than floating in the gap between two sections. */
+.keyfield__test {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-self: flex-start;
+}
+
+.keyfield__test .button { min-width: 96px; }
+
+.keyfield__result { color: var(--ink-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .keyfield__preset { transition: none; }
+}

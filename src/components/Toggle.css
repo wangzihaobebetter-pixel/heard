@@ -1,0 +1,64 @@
+/* Toggle — WP3. Ink on paper.
+
+   The "on" state is **ink, not the accent**. §7 spends the accent on exactly
+   two things — the thing that is playing, and the anchor being pressed — and a
+   preference switch is neither. An orange toggle here would be the second
+   place in the app that shouts, and it would make the first one quieter. */
+
+.toggle { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.toggle__switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-min);
+  text-align: left;
+  border-radius: var(--radius-chip);
+}
+
+.toggle__switch:disabled { opacity: 0.5; cursor: default; }
+
+.toggle__track {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  transition: background var(--dur-state) var(--ease-move),
+              border-color var(--dur-state) var(--ease-move);
+}
+
+.toggle__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  transition: transform var(--dur-state) var(--ease-move),
+              background var(--dur-state) var(--ease-move);
+}
+
+.toggle__switch[data-checked='yes'] .toggle__track {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.toggle__switch[data-checked='yes'] .toggle__knob {
+  transform: translateX(16px);
+  background: var(--bg);
+}
+
+.toggle__label { font-size: var(--size-body); }
+
+.toggle__hint {
+  margin: 0 0 0 calc(40px + var(--space-3));
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle__track, .toggle__knob { transition: none; }
+}

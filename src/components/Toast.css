@@ -1,0 +1,31 @@
+/* Toast — WP3. One line, bottom centre, above the player sheet. */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--player-sheet-collapsed) + var(--space-4));
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: calc(100% - (2 * var(--gutter)));
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-chip);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--size-secondary);
+  line-height: var(--lh-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: var(--shadow-player);
+  animation: toast-in var(--dur-settle) var(--ease-move);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, var(--space-2)); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}

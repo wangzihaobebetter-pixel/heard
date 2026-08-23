@@ -1,0 +1,97 @@
+/* Export sheet — WP3. Bottom sheet on mobile (§7: radius 16 on the top edge),
+   a centred panel on desktop. The preview is monospaced because the artifact is
+   Markdown and it must look, here, exactly like it will look pasted. */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* A scrim is a shadow, not a colour role — same reasoning as --shadow-player,
+   which is also a literal black in tokens.css. Building it from var(--ink)
+   looks right on Paper and inverts on Ink, where --ink is a light cream and the
+   "dimmed" page ends up brighter than the sheet on top of it. */
+.sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  cursor: default;
+}
+
+.sheet__panel {
+  position: relative;
+  width: 100%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--gutter) var(--space-6);
+  background: var(--surface);
+  border-top: 1px solid var(--hairline);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  box-shadow: var(--shadow-player);
+  animation: sheet-in var(--dur-scroll) var(--ease-move);
+}
+
+.sheet__panel:focus { outline: none; }
+
+.sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.sheet__title {
+  margin: 0;
+  font-size: var(--size-title);
+  line-height: var(--lh-title);
+  font-weight: var(--weight-semibold);
+}
+
+.sheet__preview {
+  margin: 0;
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-4);
+  background: var(--surface-2);
+  border-radius: var(--radius-chip);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--size-secondary);
+  line-height: var(--lh-secondary);
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.sheet__actions { display: flex; gap: var(--space-3); }
+.sheet__actions .button { flex: 1; }
+
+@keyframes sheet-in {
+  from { transform: translateY(var(--space-6)); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@media (min-width: 960px) {
+  .sheet { align-items: center; }
+
+  .sheet__panel {
+    max-width: 720px;
+    border-radius: var(--radius-sheet);
+    border: 1px solid var(--hairline);
+    padding: var(--space-6);
+  }
+
+  .sheet__actions .button { flex: 0 0 auto; min-width: 140px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet__panel { animation: none; }
+}

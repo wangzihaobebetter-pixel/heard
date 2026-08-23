@@ -1,0 +1,51 @@
+/* DropZone — WP3. A dashed rule says "put something here" without an
+   illustration; §7 forbids illustration and this is the cheapest honest cue. */
+
+.dropzone { width: 100%; }
+
+.dropzone__button {
+  width: 100%;
+  min-height: 168px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border: 1px dashed var(--hairline);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  transition: border-color var(--dur-state) var(--ease-move),
+              background var(--dur-state) var(--ease-move);
+}
+
+.dropzone__button:hover:not(:disabled) { border-color: var(--ink-3); }
+.dropzone__button:disabled { opacity: 0.5; cursor: default; }
+
+.dropzone[data-over='yes'] .dropzone__button {
+  border-color: var(--anchor);
+  border-style: solid;
+  background: var(--wash-2);
+}
+
+.dropzone__mark {
+  font-size: var(--size-title);
+  line-height: 1;
+  color: var(--ink-3);
+}
+
+.dropzone__label {
+  font-size: var(--size-title);
+  line-height: var(--lh-title);
+  font-weight: var(--weight-semibold);
+}
+
+.dropzone__hint { color: var(--ink-3); }
+
+@media (min-width: 960px) {
+  .dropzone__button { min-height: 200px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropzone__button { transition: none; }
+}

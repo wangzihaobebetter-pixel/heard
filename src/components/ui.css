@@ -1,0 +1,197 @@
+/* ============================================================
+   Shared surface primitives for the WP3 screens (Library · Bring ·
+   Settings · Export). WP3 owns this file.
+
+   Everything here is straight out of DESIGN §7: Button in its three weights,
+   the card, the section label, the "notice" that carries every failure state,
+   and the screen top bar. No colour literal appears below — the token layer is
+   the only place a hex is allowed to exist (verify-tokens enforces it).
+
+   §7, load-bearing and easy to forget: **no red for errors, no green for
+   success.** A notice is ink on surface-2 with the accent as a hairline rule.
+   That is the whole error vocabulary.
+   ============================================================ */
+
+/* ------------------------------------------------------------------ button */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--touch-min);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-chip);
+  font-size: var(--size-body);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background var(--dur-state) var(--ease-move),
+              border-color var(--dur-state) var(--ease-move),
+              opacity var(--dur-state) var(--ease-move);
+}
+
+.button:disabled { cursor: default; }
+
+.button--primary:disabled {
+  background: var(--surface-2);
+  color: var(--ink-3);
+  border-color: var(--hairline);
+}
+
+.button--secondary:disabled, .button--quiet:disabled { opacity: 0.45; }
+
+/* primary = ink fill (§7). The accent is reserved for playback and anchors —
+   a primary button is not "the thing that is playing", so it is ink. */
+.button--primary { background: var(--ink); color: var(--bg); }
+.button--primary:hover:not(:disabled) { background: var(--ink-2); }
+
+.button--secondary { border-color: var(--hairline); color: var(--ink); background: var(--surface); }
+.button--secondary:hover:not(:disabled) { border-color: var(--ink-3); }
+
+.button--quiet { color: var(--ink-2); padding: 0 var(--space-2); font-size: var(--size-secondary); }
+.button--quiet:hover:not(:disabled) { color: var(--ink); }
+
+.button--wide { width: 100%; }
+
+/* ------------------------------------------------------------------- icons */
+
+.iconbutton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius-chip);
+  color: var(--ink-2);
+  font-size: var(--size-title);
+  line-height: 1;
+  text-decoration: none;
+  transition: color var(--dur-state) var(--ease-move);
+}
+
+.iconbutton:hover { color: var(--ink); }
+
+/* ------------------------------------------------------------------ topbar
+
+   DESIGN §4.1: "app name small top-left; theme toggle and ⚙ top-right". Each
+   WP3 screen carries its own top bar (the Interview screen has its own, §4.2),
+   which makes the WP0 shell `.appbar` redundant.
+
+   INTEGRATOR SEAM — REVIEW A6(a) already schedules the removal of that shell
+   appbar. Until that edit lands, this rule keeps the app from rendering two
+   stacked headers. It is confined to WP3's own stylesheet (no WP0 file is
+   touched) and becomes a harmless no-op the moment A6(a) ships.            */
+
+.shell:has(.topbar) > .appbar { display: none; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--appbar-h);
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topbar__name {
+  font-size: var(--size-secondary);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-micro);
+  color: var(--ink);
+  text-decoration: none;
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+}
+
+.topbar__spacer { flex: 1; }
+
+/* ------------------------------------------------------------------ layout */
+
+.stack { display: flex; flex-direction: column; }
+.stack--2 { gap: var(--space-2); }
+.stack--3 { gap: var(--space-3); }
+.stack--4 { gap: var(--space-4); }
+.stack--6 { gap: var(--space-6); }
+
+.section { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.section__label {
+  font-size: var(--size-micro);
+  line-height: var(--lh-micro);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-micro);
+  color: var(--ink-3);
+  margin: 0;
+}
+
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.field__label {
+  font-size: var(--size-micro);
+  line-height: var(--lh-micro);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-micro);
+  color: var(--ink-3);
+}
+
+.input, .select {
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: 0 var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-chip);
+  font-size: var(--size-body);
+}
+
+.input:focus-visible, .select:focus-visible { border-color: var(--anchor); }
+
+/* ------------------------------------------------------------------ notice
+
+   Every failure state in §4.1/§4.3/§4.4 renders through this. Ink on
+   surface-2, one accent hairline on the leading edge. Never red.            */
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-4);
+  padding-left: calc(var(--space-4) - 2px);
+  background: var(--error-bg);
+  color: var(--error-ink);
+  border-left: 2px solid var(--error-rule);
+  border-radius: var(--radius-chip);
+}
+
+.notice__text {
+  margin: 0;
+  font-size: var(--size-body);
+  line-height: var(--lh-body);
+}
+
+/* -------------------------------------------------------------------- card */
+
+.card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  text-decoration: none;
+  color: inherit;
+}
+
+@media (min-width: 960px) {
+  .topbar { padding: 0 var(--gutter-desktop); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button, .iconbutton { transition: none; }
+}

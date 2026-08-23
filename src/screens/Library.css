@@ -1,0 +1,130 @@
+/* Library — WP3 (DESIGN §4.1, §7).
+
+   A working document, not a gallery: hairline-bordered cards on paper, one
+   accent nowhere except the progress hairline of a recording still being heard
+   (which is, literally, "the thing that is playing"). */
+
+.library { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.library__bring { margin-bottom: var(--space-2); }
+
+/* ------------------------------------------------------------------- list */
+
+.library__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.librarycard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  transition: border-color var(--dur-state) var(--ease-move);
+}
+
+.librarycard:hover { border-color: var(--ink-3); }
+
+.librarycard__title {
+  margin: 0;
+  font-size: var(--size-title);
+  line-height: var(--lh-title);
+  font-weight: var(--weight-semibold);
+  /* One line, ellipsised — a long title must not push the status line around. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.librarycard__meta {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--ink-2);
+}
+
+.librarycard__date { font-variant-numeric: tabular-nums; }
+.librarycard__dot { color: var(--ink-3); }
+
+.librarycard__status { margin: 0; color: var(--ink-2); }
+
+/* ✓ heard is ink, never green (§7). */
+.librarycard__check { color: var(--heard); }
+
+/* --------------------------------------------------- still being heard §4.1
+
+   "a thin progress hairline and `Heard 41 of 92 min`". Scaled with a transform
+   so the fill animates on the compositor and a 0-length fill is still 1 px of
+   rule rather than a collapsed box.                                          */
+
+.librarycard__hairline {
+  display: block;
+  height: 2px;
+  margin: var(--space-2) 0 var(--space-1);
+  background: var(--hairline);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.librarycard__hairline-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--anchor);
+  transform-origin: left center;
+  transition: transform var(--dur-scroll) var(--ease-move);
+}
+
+/* --------------------------------------------------------------- sample tag */
+
+.librarycard__tag {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-chip);
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+.librarycard__lede {
+  margin: var(--space-2) 0 0;
+  color: var(--ink-3);
+}
+
+/* ------------------------------------------------------------ empty state */
+
+.library__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-6) 0;
+}
+
+.library__empty-title {
+  margin: 0;
+  font-size: var(--size-title);
+  line-height: var(--lh-title);
+  font-weight: var(--weight-semibold);
+}
+
+.library__empty-body { margin: 0; }
+
+.library__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+@media (min-width: 960px) {
+  .library__bring { align-self: flex-start; width: auto; min-width: 260px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .librarycard, .librarycard__hairline-fill { transition: none; }
+}
