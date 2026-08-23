@@ -11,7 +11,7 @@ import { useRoute, href } from './router';
 import { useStore } from './store';
 import { resolveLang, setLang, useT } from './i18n';
 import { ensureSample } from './sample/load';
-import { SAMPLE_ID } from './sample/schema';
+import { ensureStarterLibrary } from './content/load';
 import Library from './screens/Library';
 import Interview from './screens/Interview';
 import Bring from './screens/Bring';
@@ -56,16 +56,25 @@ export default function App() {
 
   useEffect(() => { setLang(resolveLang(lang)); }, [lang]);
 
-  /* First run lands INSIDE the sample (DESIGN §4, §6 moment 1) — not on a
-     welcome, not on the Library. Only ever redirects once. */
+  /* First run lands INSIDE a real recording (DESIGN §4, §6 moment 1; v3
+     PRODUCT-SPEC §4.7) — not on a welcome, not on the Library. The starter
+     library is the front door; the bundled NASA sample remains the offline
+     fallback, because a first run with no network still deserves a first act.
+     Only ever redirects once. */
   useEffect(() => {
     if (!hydrated) return;
-    const id = ensureSample();
-    if (firstRunSeen) return;
-    useStore.getState().setUi({ firstRunSeen: true });
-    if (id && (!window.location.hash || window.location.hash === '#/' || window.location.hash === '#')) {
-      window.location.hash = href('interview', { id: SAMPLE_ID });
-    }
+    let cancelled = false;
+    void ensureStarterLibrary().then((starterId) => {
+      if (cancelled) return;
+      const state = useStore.getState();
+      if (state.ui.firstRunSeen) return;
+      const id = starterId ?? ensureSample();
+      state.setUi({ firstRunSeen: true });
+      if (id && (!window.location.hash || window.location.hash === '#/' || window.location.hash === '#')) {
+        window.location.hash = href('interview', { id });
+      }
+    });
+    return () => { cancelled = true; };
   }, [hydrated, firstRunSeen]);
 
   return (

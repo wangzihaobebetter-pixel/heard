@@ -275,7 +275,9 @@ function buildEntry(entry) {
   const sha256 = createHash('sha256').update(fs.readFileSync(mp3)).digest('hex');
   const meta = {
     id: entry.id, title: entry.title, speaker: entry.speaker, occasion: entry.occasion,
-    recordedAt: Date.parse(`${entry.recordedAt}T00:00:00Z`),
+    // Noon UTC, not midnight: these dates are calendar days, and midnight UTC
+    // renders as the previous day everywhere west of Greenwich.
+    recordedAt: Date.parse(`${entry.recordedAt}T12:00:00Z`),
     category: entry.category, lang: entry.lang, license: entry.license,
     commercialUse: entry.commercialUse, blurb: entry.blurb, credit: entry.credit,
     ...(entry.contextNote ? { contextNote: entry.contextNote } : {}),

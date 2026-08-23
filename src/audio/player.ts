@@ -38,6 +38,7 @@ import type { Anchor, Word } from '../types';
 import { NUDGES, POST_ROLL_SEC, PRE_ROLL_APPROX_SEC, PRE_ROLL_SEC } from '../store/presets';
 import { getAudio, putAudio } from '../lib/storage';
 import { SAMPLE_AUDIO_URL, SAMPLE_ID } from '../sample/schema';
+import { starterAudioUrl } from '../content/load';
 import { usePlayer, useStore } from '../store';
 
 export type LoadResult = 'ok' | 'missing';
@@ -419,26 +420,28 @@ export class Player {
 /* ----------------------------------------------------------- resolution */
 
 /**
- * Amendment A3. The sample takes the same door as every user recording: fetch
- * once, `putAudio`, then always IndexedDB. The store is updated to say the file
- * is kept, so Library and the dashed-chip logic see the truth.
+ * Amendment A3. Bundled content — the sample and every starter-library entry —
+ * takes the same door as a user recording: fetch once, `putAudio`, then always
+ * IndexedDB. The store is updated to say the file is kept, so Library and the
+ * dashed-chip logic see the truth.
  */
 export async function resolveAudioBlob(interviewId: string): Promise<Blob | null> {
   const existing = await getAudio(interviewId);
   if (existing) return existing;
-  if (interviewId !== SAMPLE_ID) return null;
+  const url = interviewId === SAMPLE_ID ? SAMPLE_AUDIO_URL : starterAudioUrl(interviewId);
+  if (!url) return null;
 
   try {
     // `base: './'` means the app can live under a Pages sub-path; resolving
     // against `baseURI` is what keeps this working there and from file://.
-    const res = await fetch(new URL(SAMPLE_AUDIO_URL, document.baseURI).href);
+    const res = await fetch(new URL(url, document.baseURI).href);
     if (!res.ok) return null;
     const blob = await res.blob();
-    await putAudio(SAMPLE_ID, blob);
+    await putAudio(interviewId, blob);
     const store = useStore.getState();
-    const interview = store.interviews[SAMPLE_ID];
+    const interview = store.interviews[interviewId];
     if (interview) {
-      store.updateInterview(SAMPLE_ID, { file: { ...interview.file, kept: true } });
+      store.updateInterview(interviewId, { file: { ...interview.file, kept: true } });
     }
     return blob;
   } catch {

@@ -91,6 +91,14 @@ export async function ensurePeaks(interviewId: string, blob: Blob): Promise<Floa
   return job;
 }
 
+/** Precomputed peaks (the starter library ships them) — no decode, ever.
+    Same cache slots as ensurePeaks, so every consumer stays oblivious. */
+export async function seedPeaks(interviewId: string, peaks: number[]): Promise<void> {
+  const arr = Float32Array.from(peaks);
+  memory.set(interviewId, arr);
+  try { await set(peaksKey(interviewId), peaks); } catch { /* cache miss is fine */ }
+}
+
 export async function removePeaks(interviewId: string): Promise<void> {
   memory.delete(interviewId);
   try { const { del } = await import('idb-keyval'); await del(peaksKey(interviewId)); } catch { /* gone is fine */ }

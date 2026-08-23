@@ -127,6 +127,9 @@ export interface Interview {
   status: InterviewStatus;
   /** true for the bundled NASA sample; drives the Library tag and About credit */
   sample?: boolean;
+  /** true for starter-library entries (v3) — credit/licence come from the
+      starter manifest (src/content), keyed by this interview's id */
+  starter?: boolean;
 }
 
 /* ---------------------------------------------------------------- settings */

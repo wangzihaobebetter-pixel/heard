@@ -26,8 +26,10 @@ const assets = filesUnder(DIST)
   .map((file) => relative(DIST, file).split(sep).join('/'))
   .filter((file) => !['sw.js', 'index.html', 'manifest.webmanifest'].includes(file) && !file.startsWith('.'))
   // The sample mp3 is fetched on first play and runtime-cached; precaching 4 MB
-  // on every first load would be rude (DESIGN §4.6).
-  .filter((file) => file !== 'sample.mp3')
+  // on every first load would be rude (DESIGN §4.6). The starter library is the
+  // same story at scale: ~41 MB of audio plus per-entry bundles, all fetched on
+  // demand and runtime-cached.
+  .filter((file) => file !== 'sample.mp3' && !file.startsWith('starter/'))
   .sort()
   .map((file) => JSON.stringify(`./${file}`))
   .join(',\n  ');
