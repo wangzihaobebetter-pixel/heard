@@ -162,6 +162,10 @@ export function buildTokenIndex(words: Word[]): TokenIndex {
   const charOwner: number[] = [];
   for (let w = 0; w < words.length; w++) {
     const t = words[w].t ?? '';
+    // The provider never emits leading whitespace on a Word.t (0 of 1740 in the
+    // NASA sample), but the joined text a quote is taken from DOES have spaces
+    // between words. Stitch them in here so the tokeniser counts them.
+    if (full) { full += ' '; charOwner.push(w); }
     full += t;
     for (let c = 0; c < t.length; c++) charOwner.push(w);
   }
@@ -355,5 +359,5 @@ export function alignQuotes(quotes: string[], words: Word[], segments?: Segment[
 
 /** The verbatim text of `[wi, wj)`, for a note's `quote` field and the export. */
 export function textOfSpan(words: Word[], wi: number, wj: number): string {
-  return words.slice(Math.max(0, wi), Math.max(0, wj)).map((w) => w.t).join('').trim();
+  return words.slice(Math.max(0, wi), Math.max(0, wj)).map((w) => w.t).join(' ').trim();
 }
