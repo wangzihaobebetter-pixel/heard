@@ -341,3 +341,45 @@ registerStrings('settings', {
     'vocabularyWhy': '课程术语和人名，一行一个。每次转写都会带上，让它们第一次就写对。',
   },
 });
+
+/* --------------------------------------------------- v3 B5: the AI layer */
+
+registerStrings('interview', {
+  en: {
+    'tabAi': 'Summary',
+  },
+  'zh-CN': {
+    'tabAi': '摘要',
+  },
+});
+
+registerStrings('ai', {
+  en: {
+    'summary': 'Summary',
+    'chapters': 'Chapters',
+    'concepts': 'Key concepts',
+    'flags': 'Flagged moments',
+    'generate': 'Read it back',
+    'generateWhy': 'A summary, chapters and key concepts — every claim carries a press-to-hear citation.',
+    'regenerate': 'Read it again',
+    'generating': 'Reading it back…',
+    'failed': 'The provider could not read this one. Try again in a moment.',
+    'connectWhy': 'Summaries need a notes provider. The transcript and your notes work without one.',
+    'connectCta': 'Connect a provider',
+    'notYet': 'The summary comes once the recording has been transcribed.',
+  },
+  'zh-CN': {
+    'summary': '摘要',
+    'chapters': '章节',
+    'concepts': '关键概念',
+    'flags': '标记时刻',
+    'generate': '读一遍',
+    'generateWhy': '摘要、章节、关键概念——每个论断都带一个按下即听的引用。',
+    'regenerate': '重新读一遍',
+    'generating': '正在读…',
+    'failed': '服务这次没读成。稍后再试一次。',
+    'connectWhy': '生成摘要需要接入笔记服务。转写和你自己的笔记不需要。',
+    'connectCta': '接入服务',
+    'notYet': '录音转写完成后，摘要才会出现。',
+  },
+});

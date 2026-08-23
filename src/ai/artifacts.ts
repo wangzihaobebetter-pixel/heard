@@ -1,0 +1,177 @@
+/**
+ * The AI layer's artifacts — summary, chapters, concepts, exam flags —
+ * for every recording (v3 B5, PRODUCT-SPEC §4.4).
+ *
+ * Two sources, one shape (src/content/schema.ts StarterArtifacts):
+ *
+ *  - Starter entries ship theirs precomputed and verified at build time
+ *    (166 quotes through the reference aligner AND the publisher's own
+ *    transcript — scripts/build-content.mjs). The no-key experience is
+ *    complete because these never need a provider.
+ *  - User recordings generate theirs here, under the same prompt law the
+ *    notes model lives by (src/notes/prompt.ts): the model sees word indices
+ *    and never a clock, every claim carries a VERBATIM quote, and every quote
+ *    must re-align to the word timeline (src/audio/align.ts) or its citation
+ *    is dropped — an uncited sentence ships as text, never as a chip
+ *    pretending to a moment it cannot prove.
+ *
+ * Generated artifacts persist in IndexedDB (`artifacts:<id>`), outside the
+ * JSON-serialised store, same reasoning as the starter bundles (B1).
+ */
+import { del, get, set } from 'idb-keyval';
+import { useStore } from '../store';
+import { fetchStarterBundle, starterMeta } from '../content/load';
+import { alignQuote, buildTokenIndex } from '../audio/align';
+import { completeJson } from '../notes/generate';
+import { renderWindow } from '../notes/prompt';
+import type { Citation, StarterArtifacts } from '../content/schema';
+import type { Word } from '../types';
+
+const artifactsKey = (id: string) => `artifacts:${id}`;
+const MIN_ALIGN = 0.85;
+
+/* ----------------------------------------------------------------- reading */
+
+const memory = new Map<string, StarterArtifacts>();
+
+export async function getArtifacts(interviewId: string): Promise<StarterArtifacts | null> {
+  const m = memory.get(interviewId);
+  if (m) return m;
+  if (starterMeta(interviewId)) {
+    const bundle = await fetchStarterBundle(interviewId);
+    if (bundle) memory.set(interviewId, bundle.artifacts);
+    return bundle?.artifacts ?? null;
+  }
+  try {
+    const stored = await get<StarterArtifacts>(artifactsKey(interviewId));
+    if (stored) memory.set(interviewId, stored);
+    return stored ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function removeArtifacts(interviewId: string): Promise<void> {
+  memory.delete(interviewId);
+  try { await del(artifactsKey(interviewId)); } catch { /* gone is fine */ }
+}
+
+/* -------------------------------------------------------------- generation */
+
+export const ARTIFACTS_SYSTEM = [
+  'You are reading the transcript of a recorded lecture or talk and writing study material that will be checked against the tape.',
+  '',
+  'Absolute rules:',
+  '1. Every `quote` field MUST be copied VERBATIM from the transcript — exact characters, punctuation, transcription oddities and all. Never paraphrase inside a quote, never join non-adjacent passages, never repair grammar.',
+  '2. A claim you cannot support with a verbatim quote does not get a citation — and a chapter, concept or flag you cannot quote does not get written.',
+  '3. The word indices in square brackets exist so you can read; never use them in your answer, and never invent timestamps.',
+  '',
+  'What to write:',
+  '- `summary`: 2–4 short paragraphs. Mark cited claims inline with [1], [2]… in reading order; `citations` lists the verbatim quote for each marker, in order.',
+  '- `chapters`: 4–10 entries covering the whole recording in order; `quote` is the verbatim opening words of that section.',
+  '- `concepts`: the 2–6 terms a student would need defined; one-sentence `definition` in your words, `quote` verbatim where the term is used.',
+  '- `flags`: only genuinely actionable items — deadlines, exam mentions, assignments, explicit "remember this" moments. Empty is correct when there are none.',
+  '',
+  'Answer with JSON only, exactly this shape:',
+  '{"summary":{"text":"…[1]…","citations":["…"]},"chapters":[{"title":"…","quote":"…"}],"concepts":[{"term":"…","definition":"…","quote":"…"}],"flags":[{"text":"…","quote":"…"}]}',
+].join('\n');
+
+interface RawArtifacts {
+  summary?: { text?: unknown; citations?: unknown };
+  chapters?: unknown;
+  concepts?: unknown;
+  flags?: unknown;
+}
+
+/** Tolerant JSON extraction — fences and prose happen (notes/generate.ts). */
+function parseRaw(raw: string): RawArtifacts | null {
+  const m = /\{[\s\S]*\}/.exec(raw);
+  if (!m) return null;
+  try { return JSON.parse(m[0]) as RawArtifacts; } catch { return null; }
+}
+
+const asStr = (x: unknown): string => (typeof x === 'string' ? x : '');
+const asArr = (x: unknown): unknown[] => (Array.isArray(x) ? x : []);
+
+export type GenerateResult =
+  | { ok: true; artifacts: StarterArtifacts }
+  | { ok: false; reason: 'no-key' | 'no-transcript' | 'failed' };
+
+/**
+ * Generate, verify, persist. One provider call for the whole recording; the
+ * verification is the same shape as the build-time gate: align or drop.
+ */
+export async function generateArtifacts(interviewId: string): Promise<GenerateResult> {
+  const store = useStore.getState();
+  const llm = store.settings.llm;
+  if (!llm.key.trim()) return { ok: false, reason: 'no-key' };
+  const t = store.transcripts[interviewId];
+  const words = t?.words ?? [];
+  if (words.length < 40) return { ok: false, reason: 'no-transcript' };
+
+  const title = store.interviews[interviewId]?.title;
+  const user = [
+    title ? `Recording: ${title}` : '',
+    `Language: ${t.lang}. Write in this language.`,
+    'Each transcript line begins with the word index of its first word, in square brackets.',
+    '',
+    '--- TRANSCRIPT ---',
+    renderWindow(words, 0, words.length),
+    '--- END TRANSCRIPT ---',
+  ].filter(Boolean).join('\n');
+
+  let raw: string;
+  try {
+    raw = await completeJson(ARTIFACTS_SYSTEM, user, {
+      baseUrl: llm.baseUrl, key: llm.key, model: llm.model,
+    });
+  } catch {
+    return { ok: false, reason: 'failed' };
+  }
+  const parsed = parseRaw(raw);
+  if (!parsed) return { ok: false, reason: 'failed' };
+
+  const index = buildTokenIndex(words);
+  const resolve = (quote: string): Citation | null => {
+    const q = quote.trim();
+    if (!q) return null;
+    const { anchor, ratio } = alignQuote(q, words, { index, segments: t.segments });
+    if (anchor.quality !== 'word' || anchor.wi == null || anchor.wj == null || (ratio ?? 0) < MIN_ALIGN) return null;
+    return {
+      // The shipped quote is what the span SAYS, never the model's copy.
+      quote: words.slice(anchor.wi, anchor.wj).map((w) => w.t).join(' '),
+      wi: anchor.wi, wj: anchor.wj, s: anchor.s, e: anchor.e,
+      corrob: +(ratio ?? 0).toFixed(4),
+    };
+  };
+
+  const artifacts: StarterArtifacts = {
+    summary: {
+      text: asStr(parsed.summary?.text),
+      // Nullable per marker: a failed citation keeps its [n] as plain text
+      // instead of renumbering every other marker.
+      citations: asArr(parsed.summary?.citations).map((q) => resolve(asStr(q))) as Citation[],
+    },
+    chapters: asArr(parsed.chapters).flatMap((c) => {
+      const o = (c ?? {}) as Record<string, unknown>;
+      const at = resolve(asStr(o.quote));
+      return at && asStr(o.title) ? [{ title: asStr(o.title), at }] : [];
+    }),
+    concepts: asArr(parsed.concepts).flatMap((c) => {
+      const o = (c ?? {}) as Record<string, unknown>;
+      const cite = resolve(asStr(o.quote));
+      return cite && asStr(o.term) ? [{ term: asStr(o.term), definition: asStr(o.definition), cite }] : [];
+    }),
+    flags: asArr(parsed.flags).flatMap((f) => {
+      const o = (f ?? {}) as Record<string, unknown>;
+      const cite = resolve(asStr(o.quote));
+      return cite && asStr(o.text) ? [{ text: asStr(o.text), cite }] : [];
+    }),
+  };
+
+  if (!artifacts.summary.text && !artifacts.chapters.length) return { ok: false, reason: 'failed' };
+
+  memory.set(interviewId, artifacts);
+  try { await set(artifactsKey(interviewId), artifacts); } catch { /* memory copy still serves */ }
+  return { ok: true, artifacts };
+}

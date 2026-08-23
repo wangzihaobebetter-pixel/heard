@@ -34,6 +34,9 @@ import NoteRow from '../components/NoteRow';
 import SelectionPill from '../components/SelectionPill';
 import Player, { type SheetHeight } from '../components/Player';
 import TranscriptParagraph, { buildParagraphs, type Paragraph } from '../components/TranscriptParagraph';
+import AiPanel from '../components/AiPanel';
+import { generateArtifacts, getArtifacts } from '../ai/artifacts';
+import type { Citation, StarterArtifacts } from '../content/schema';
 import './Interview.css';
 
 const FIRST_RUN_KEY = 'heard-firstrun-line';
@@ -41,7 +44,7 @@ const AFTERGLOW_MS = 1600;
 /** The transcript must not fight a user who is reading it (DESIGN §5, precision). */
 const USER_SCROLL_GRACE_MS = 2000;
 
-type Tab = 'notes' | 'transcript';
+type Tab = 'notes' | 'transcript' | 'ai';
 interface SelectionInfo { x: number; y: number; wi: number; wj: number; text: string }
 
 export default function Interview({ id }: { id: string }) {
@@ -209,6 +212,34 @@ export default function Interview({ id }: { id: string }) {
     if (import.meta.env.DEV) void import('./Interview.devkit');
   }, []);
 
+  /* ------------------------------------------------------------ the AI layer */
+
+  const llmKey = useStore((s) => s.settings.llm.key);
+  const [artifacts, setArtifacts] = useState<StarterArtifacts | null>(null);
+  const [aiStatus, setAiStatus] = useState<'ready' | 'none' | 'no-key' | 'generating' | 'failed'>('none');
+  const canGenerate = !interview?.starter && !interview?.sample && (transcript?.words.length ?? 0) >= 40;
+
+  useEffect(() => {
+    let live = true;
+    setArtifacts(null);
+    setAiStatus('none');
+    void getArtifacts(id).then((a) => {
+      if (!live) return;
+      if (a) { setArtifacts(a); setAiStatus('ready'); return; }
+      const words = useStore.getState().transcripts[id]?.words.length ?? 0;
+      const iv = useStore.getState().interviews[id];
+      if (iv && !iv.starter && !iv.sample && words >= 40 && !llmKey.trim()) setAiStatus('no-key');
+    });
+    return () => { live = false; };
+  }, [id, llmKey, transcript]);
+
+  const runGenerate = useCallback(async () => {
+    setAiStatus('generating');
+    const r = await generateArtifacts(id);
+    if (r.ok) { setArtifacts(r.artifacts); setAiStatus('ready'); }
+    else setAiStatus(r.reason === 'no-key' ? 'no-key' : 'failed');
+  }, [id]);
+
   /* ------------------------------------------------------------ the intake */
 
   /* v3 B2: opening an interview that still needs transcribing starts (or
@@ -336,6 +367,17 @@ export default function Interview({ id }: { id: string }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [id]);
+
+  /* v3 B5: a citation chip is a claim about a moment; pressing it is the
+     check. Same contract as pressing a note, without a note. */
+  const pressCitation = useCallback((c: Citation) => {
+    setStopped(false);
+    setNudged(false);
+    setNotice(null);
+    const anchor: Anchor = { s: c.s, e: c.e, wi: c.wi, wj: c.wj, quality: 'word' };
+    if (hasAudio) void player.playSpan(anchor);
+    window.requestAnimationFrame(() => scrollToSpan(anchor));
+  }, [hasAudio, player, scrollToSpan]);
 
   /** Only-notes on = start studying now: play the first noted moment at or
       after the playhead. Off = plain free listening, nothing else changes. */
@@ -931,11 +973,28 @@ export default function Interview({ id }: { id: string }) {
         >
           {t('interview.tabTranscript')}
         </button>
+        <button
+          type="button" role="tab" className="seg" data-on={tab === 'ai'}
+          data-testid="tab-ai" aria-selected={tab === 'ai'}
+          onClick={() => setTab('ai')}
+        >
+          {t('interview.tabAi')}
+        </button>
       </div>
 
       <div className="iv__body" data-tab={tab}>
         {notesPane}
         {transcriptPane}
+        <section className="iv__pane iv__ai" data-testid="ai-pane">
+          <AiPanel
+            artifacts={artifacts}
+            status={aiStatus}
+            canGenerate={canGenerate}
+            onCite={pressCitation}
+            onGenerate={() => { void runGenerate(); }}
+            onConnect={() => navigate('settings')}
+          />
+        </section>
       </div>
 
       <Player

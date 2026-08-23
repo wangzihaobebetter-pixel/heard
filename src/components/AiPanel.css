@@ -1,0 +1,79 @@
+/* AiPanel — the machine's reading of the tape, visibly secondary to the
+   user's ink (v3 B5; the Granola black/gray authorship convention). */
+
+.ai {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  overflow-y: auto;
+}
+
+.ai__state { margin: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start; }
+
+.ai__section { display: flex; flex-direction: column; gap: var(--space-2); }
+.ai__label { color: var(--ink-3); }
+
+.ai__para {
+  margin: 0;
+  color: var(--ink-2);          /* AI voice: one step quieter than ink */
+  line-height: 1.6;
+}
+
+.ai__cite {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 4px;
+  margin: 0 2px;
+  border: 1px solid var(--hairline-2);
+  border-radius: var(--radius-chip);
+  font-size: var(--size-micro);
+  color: var(--anchor);
+  background: transparent;
+  vertical-align: 0.1em;
+}
+.ai__cite:hover { border-color: var(--anchor); }
+
+.ai__chapters {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai__chapter {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  width: 100%;
+  padding: var(--space-1) 0;
+  text-align: left;
+  color: var(--ink-2);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  cursor: pointer;
+}
+.ai__chapter:hover .ai__chapter-title { color: var(--ink); }
+
+.ai__concept { display: flex; flex-direction: column; gap: 2px; }
+.ai__term { margin: 0; color: var(--ink); font-weight: 600; display: flex; gap: var(--space-2); align-items: baseline; }
+.ai__term-tc { flex: none; }
+.ai__def { margin: 0; line-height: 1.5; }
+
+.ai__flag {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  width: 100%;
+  padding: var(--space-1) 0;
+  text-align: left;
+  color: var(--ink-2);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.ai__flag:hover span:last-child { color: var(--ink); }
+
+.ai__regen { align-self: flex-start; }

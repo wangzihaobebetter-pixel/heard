@@ -175,7 +175,13 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
 
 /* One pane at a time on mobile — the segmented control is the switch. */
 .iv__body[data-tab='notes'] .iv__transcript,
-.iv__body[data-tab='transcript'] .iv__notes { display: none; }
+.iv__body[data-tab='notes'] .iv__ai,
+.iv__body[data-tab='transcript'] .iv__notes,
+.iv__body[data-tab='transcript'] .iv__ai,
+.iv__body[data-tab='ai'] .iv__notes,
+.iv__body[data-tab='ai'] .iv__transcript { display: none; }
+
+.iv__ai { flex: 1; padding: 0; }
 
 .iv__notes, .iv__transcript { flex: 1; }
 
@@ -330,12 +336,20 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
 /* ---------------------------------------------------------------- desktop */
 
 @media (min-width: 960px) {
-  .iv__segmented { display: none; }
-
+  /* v3 B5: with a third pane the segmented control is no longer redundant on
+     desktop — it toggles the left column between Notes and the AI reading;
+     the transcript stays put on the right. */
   .iv__body { flex-direction: row; }
 
   .iv__body[data-tab='notes'] .iv__transcript,
+  .iv__body[data-tab='ai'] .iv__transcript,
   .iv__body[data-tab='transcript'] .iv__notes { display: block; }
+
+  .iv__body[data-tab='ai'] .iv__ai { display: block; }
+  .iv__ai {
+    flex: 0 0 var(--col-notes);
+    min-width: var(--col-notes-min);
+  }
 
   .iv__notes {
     flex: 0 0 var(--col-notes);
