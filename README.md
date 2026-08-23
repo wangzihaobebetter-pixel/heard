@@ -15,25 +15,39 @@ it is not re-litigated in code.
 
 ## State of the build
 
-This is **WP0 — contracts and scaffold**. Frozen and ready for the parallel
-packages to land on:
+All five packages have landed. Every verifier below passes at this commit:
 
-| Area | File | Owner after WP0 |
+| Area | File | Landed in |
 |---|---|---|
-| Types | `src/types.ts` | frozen (integrator only) |
-| Store | `src/store/index.ts`, `src/store/presets.ts` | frozen |
-| Storage | `src/lib/storage.ts` | frozen |
-| Tokens | `src/styles/tokens.css` (alias `src/tokens.css`) | frozen |
-| i18n | `src/i18n/*` | frozen; new copy comes through the design doc |
-| Router | `src/router.ts` | frozen |
-| Sample schema | `src/sample/schema.ts`, `src/sample/load.ts` | frozen; `sample.json` is WP4's |
-| Library / Bring / Settings | `src/screens/{Library,Bring,Settings}.tsx` | **WP3** (stubs today) |
-| Interview | `src/screens/Interview.tsx` | **WP2** (stub today) |
-| Audio engine | `src/audio/*` | **WP1** (not yet created) |
-| Notes generation | `src/notes/*` | **WP4** (not yet created) |
+| Types, store, storage, tokens, i18n, router | `src/types.ts`, `src/store/*`, `src/lib/storage.ts`, `src/styles/tokens.css`, `src/i18n/*`, `src/router.ts` | WP0 (frozen) |
+| Audio engine — decode, chunk, transcribe, align, player | `src/audio/*` | WP1 |
+| Interview screen, note row, player UI, selection | `src/screens/Interview.tsx`, `src/components/*` | WP2 |
+| Library, Bring, Settings, quote-sheet export | `src/screens/{Library,Bring,Settings}.tsx`, `src/export/*` | WP3 |
+| Notes generation and the bundled NASA sample | `src/notes/*`, `src/sample/sample.json` | WP4 |
 
-`src/sample/sample.json` is a **stub** with four fake notes so UI work can start
-before the real NASA excerpt lands. Every stub note's text begins `STUB —`.
+`src/sample/sample.json` is the **real** 11m55s NASA excerpt — 1740 words, 164
+segments, 17 notes, word times from whisper.cpp `large-v3-turbo` with DTW token
+timestamps. How it was produced and independently corroborated against NASA's
+own published transcript is in `sample-verification.md`.
+
+### Verifier results at this commit
+
+| Suite | Result |
+|---|---|
+| `npm run build` (tsc, i18n, tokens, router, contracts, pwa, sample, a4, vite, sw) | green |
+| `verify-sample` — structural truth, round trip through the shipped aligner, physical plausibility | 100/100 |
+| `verify-a4` — seed, reboot, and version-bump merge | 20/20 |
+| `verify-engine` — chunking, resample, direct path, player, alignment, IndexedDB sample door | 45/45 |
+| `verify-interview` — the five executable claims of DESIGN §5, on a real Chrome | 20/20 |
+| `verify-export` — quote sheet byte-for-byte against DESIGN §4.5, both languages | 52 checks |
+
+`verify-engine` and `verify-interview` drive a real Chrome and are not part of
+`npm run build`; run them with `npm run verify:engine` and
+`node verify-interview.mjs` (the latter wants `npm run dev` on port 5178).
+
+Transcription in the engine suite runs in **mock** mode on a machine with no
+OpenAI/Groq key, backed by 9845 real word timings from whisper large-v3-turbo,
+with each chunk located acoustically rather than told where it sits.
 
 ## Routes
 
@@ -72,6 +86,13 @@ unknown hash renders the Library — never a white screen.
   manifest is Pages-relative and standalone, and the service worker guards every
   cache write with `res.ok` (a cached 404 once locked users out of the
   precedent app).
+- **verify-sample** — the bundled NASA sample is checked three ways: its word
+  times are monotonic and inside the audio, every shipped note round-trips
+  through the *shipped* aligner back to the span its anchor claims, and every
+  note's span overlaps speech detected in the audio itself.
+- **verify-a4** — first boot seeds the sample, a reboot leaves the user's own
+  notes and ✓ marks alone, and a version bump replaces the authored notes while
+  re-anchoring the user's against the new transcript.
 
 ## Storage
 
