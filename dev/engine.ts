@@ -354,9 +354,14 @@ interface AlignCaseReport {
 
 function alignAgainst(words: Word[]) {
   const index = buildTokenIndex(words);
-  const exact = words.slice(60, 74).map((w) => w.t).join('').trim();
+  // Joined with a space, because that is how the transcript the notes model
+  // reads is built (src/notes/prompt.ts) and how a span is read back
+  // (align.textOfSpan). Whisper's Word.t carries no leading space, so joining
+  // with '' welds neighbouring words into one token and the fixture — not the
+  // aligner — is what fails.
+  const exact = words.slice(60, 74).map((w) => w.t).join(' ').trim();
   const punctuated = `“${exact.replace(/,/g, '')}!”`;
-  const dropped = words.slice(60, 74).filter((_, k) => k !== 5).map((w) => w.t).join('').trim();
+  const dropped = words.slice(60, 74).filter((_, k) => k !== 5).map((w) => w.t).join(' ').trim();
   const absent = 'the quick brown fox jumps over a lazy dog in Houston';
 
   const cases = { exact, punctuated, dropped, absent };
@@ -373,13 +378,13 @@ function alignAgainst(words: Word[]) {
       quote,
       qTokens: normalizeTokens(quote),
       matched: r.anchor.wi !== undefined
-        ? normalizeTokens(words.slice(r.anchor.wi, r.anchor.wj).map((w) => w.t).join(''))
+        ? normalizeTokens(words.slice(r.anchor.wi, r.anchor.wj).map((w) => w.t).join(' '))
         : [],
     };
   }
   // What the target span actually normalises to — the thing the quote is
   // supposed to equal. If these disagree the fault is in the fixture, not align.
-  const targetTokens = normalizeTokens(words.slice(60, 74).map((w) => w.t).join(''));
+  const targetTokens = normalizeTokens(words.slice(60, 74).map((w) => w.t).join(' '));
 
   const report = {
     words: words.length,
