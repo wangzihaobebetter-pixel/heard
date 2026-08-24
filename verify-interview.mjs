@@ -19,6 +19,11 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const BASE = process.env.HEARD_URL ?? 'http://localhost:5178';
+/* v3 dropped the seeded `sample` interview: the first run now lands in the
+   starter library (PRODUCT-SPEC §5), so `#/i/sample` renders the empty state
+   and every assertion below it failed for a reason that had nothing to do with
+   the claims being tested. The demo of record is the Challenger address. */
+const DEMO = process.env.HEARD_DEMO ?? 'reagan-challenger';
 const CHROME = process.env.CHROME_PATH
   ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
@@ -91,22 +96,22 @@ async function captureShots(page) {
         localStorage.removeItem('heard-firstrun-line');
         window.__heardDev.store.getState().setSettings({ ui: { theme: t, lang: 'en' } });
       }, theme);
-      await open(page, 'sample');
+      await open(page, DEMO);
       await capture(page, 'shot-first-run-mobile', width, theme);
 
       /* ---- the moment: chip filled, sheet at mid, current word washed ------
          Taken against the shipped sample and the shipped mp3, not a fixture. */
-      await open(page, 'sample');
+      await open(page, DEMO);
       await setSkin(page, theme, 'en');
       await page.waitForFunction(
         () => document.querySelector('[data-testid="audio"]')?.readyState >= 2,
         { timeout: 30000 },
       );
-      const span = await page.evaluate(() => {
-        const n = window.__heardDev.store.getState().notes.sample[0];
+      const span = await page.evaluate((demo) => {
+        const n = window.__heardDev.store.getState().notes[demo][0];
         document.querySelector(`[data-note-id='${n.id}'] [data-testid='timecode-chip']`).click();
         return n.anchor;
-      });
+      }, DEMO);
       // Wait until the voice is genuinely inside the claim, not in the pre-roll.
       await page.waitForFunction((s) => {
         const el = document.querySelector('[data-testid="audio"]');
@@ -116,13 +121,14 @@ async function captureShots(page) {
       await page.evaluate(() => document.querySelector('[data-testid="audio"]').pause());
 
       /* ---- the whole screen: two columns, player bar, span on the track --- */
-      await open(page, 'sample');
+      await open(page, DEMO);
       await setSkin(page, theme, 'en');
-      const span2 = await page.evaluate(() => {
-        const n = window.__heardDev.store.getState().notes.sample[2];
+      const span2 = await page.evaluate((demo) => {
+        const ns = window.__heardDev.store.getState().notes[demo];
+        const n = ns[Math.min(2, ns.length - 1)];
         document.querySelector(`[data-note-id='${n.id}'] [data-testid='timecode-chip']`).click();
         return n.anchor;
-      });
+      }, DEMO);
       // Pause inside a WORD of the claim. Between two words nothing is being
       // spoken and nothing is lit — correct behaviour, but it would make this
       // screenshot evidence of nothing.
@@ -130,24 +136,25 @@ async function captureShots(page) {
         const el = document.querySelector('[data-testid="audio"]');
         return !el.paused && el.currentTime > s + 0.8;
       }, { timeout: 15000 }, span2.s);
-      await page.evaluate((a) => {
+      await page.evaluate((a, demo) => {
         const el = document.querySelector('[data-testid="audio"]');
         el.pause();
-        const words = window.__heardDev.store.getState().transcripts.sample.words;
+        const words = window.__heardDev.store.getState().transcripts[demo].words;
         const w = words.filter((x) => x.i >= a.wi && x.i < a.wj)[3];
         el.currentTime = w.s + (w.e - w.s) / 2;
-      }, span2);
+      }, span2, DEMO);
       await sleep(300);
       await capture(page, 'shot-desktop-interview', width, theme);
 
       /* ---- the receipt: stopped at e + 0.8, with the nudge cluster and Pin -- */
-      await open(page, 'sample');
+      await open(page, DEMO);
       await setSkin(page, theme, 'en');
-      const span3 = await page.evaluate(() => {
-        const n = window.__heardDev.store.getState().notes.sample[3];
+      const span3 = await page.evaluate((demo) => {
+        const ns = window.__heardDev.store.getState().notes[demo];
+        const n = ns[Math.min(3, ns.length - 1)];
         document.querySelector(`[data-note-id='${n.id}'] [data-testid='timecode-chip']`).click();
         return n.anchor;
-      });
+      }, DEMO);
       await page.evaluate((a) => {
         // Jump to just before the post-roll so the receipt completes now
         // rather than in ten seconds; the stop itself is still the app's.
@@ -180,7 +187,7 @@ async function captureShots(page) {
   /* ---- zh-CN spot check at 390 (definition of done, item 10) ------------- */
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
   for (const theme of ['paper', 'ink']) {
-    await open(page, 'sample');
+    await open(page, DEMO);
     await setSkin(page, theme, 'zh');
     await sleep(250);
     await capture(page, 'shot-zh-notes-mobile', 390, theme, 'zh');
@@ -426,29 +433,30 @@ async function main() {
      claims against the shipped sample and the shipped 4 MB mp3, which is the
      path a first-run user actually takes. */
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await page.goto(`${BASE}/#/i/sample`, { waitUntil: 'networkidle0' });
+  await page.goto(`${BASE}/#/i/${DEMO}`, { waitUntil: 'networkidle0' });
   const sampleReady = await page.waitForSelector('[data-testid="note-row"]', { timeout: 15000 })
     .then(() => true).catch(() => false);
 
   if (!sampleReady) {
-    bad('real sample: interview renders', 'no note rows — is sample.json seeded?');
+    bad('real starter: interview renders', `no note rows for ${DEMO} — is the starter library seeded?`);
   } else {
-    ok('real sample: interview renders');
+    ok('real starter: interview renders');
     const gotAudio = await page.waitForFunction(
       () => document.querySelector('[data-testid="audio"]')?.readyState >= 2,
       { timeout: 30000 },
     ).then(() => true).catch(() => false);
 
     if (!gotAudio) {
-      bad('real sample: the recording loads', 'audio never reached readyState 2');
+      bad('real starter: the recording loads', 'audio never reached readyState 2');
     } else {
-      ok('real sample: the recording loads', 'sample.mp3 via IndexedDB (A3 path)');
+      ok('real starter: the recording loads', 'sample.mp3 via IndexedDB (A3 path)');
 
-      const s0 = await page.evaluate(() => {
-        const n = window.__heardDev.store.getState().notes.sample.find((x) => x.anchor.quality === 'word');
+      const s0 = await page.evaluate((demo) => {
+        const ns = window.__heardDev.store.getState().notes[demo];
+        const n = ns.find((x) => x.anchor.quality === 'word') ?? ns[0];
         document.querySelector(`[data-note-id='${n.id}'] [data-testid='timecode-chip']`).click();
         return n.anchor;
-      });
+      }, DEMO);
 
       const landed = await page.evaluate(async (expected) => {
         const el = document.querySelector('[data-testid="audio"]');
@@ -461,10 +469,10 @@ async function main() {
       }, Math.max(0, s0.s - 1.0));
 
       if (near(landed, Math.max(0, s0.s - 1.0), 0.1)) {
-        ok('real sample: chip seeks to s − 1.0 ± 0.1',
+        ok('real starter: chip seeks to s − 1.0 ± 0.1',
           `wanted ${(s0.s - 1).toFixed(2)}s, got ${landed.toFixed(3)}s`);
       } else {
-        bad('real sample: chip seeks to s − 1.0 ± 0.1',
+        bad('real starter: chip seeks to s − 1.0 ± 0.1',
           `wanted ${(s0.s - 1).toFixed(2)}s, got ${landed.toFixed(3)}s`);
       }
 
@@ -478,15 +486,15 @@ async function main() {
         return -1;
       });
       if (near(realStop, s0.e + 0.8, 0.2)) {
-        ok('real sample: playback pauses at e + 0.8 ± 0.2',
+        ok('real starter: playback pauses at e + 0.8 ± 0.2',
           `wanted ${(s0.e + 0.8).toFixed(2)}s, got ${realStop.toFixed(3)}s`);
       } else {
-        bad('real sample: playback pauses at e + 0.8 ± 0.2',
+        bad('real starter: playback pauses at e + 0.8 ± 0.2',
           `wanted ${(s0.e + 0.8).toFixed(2)}s, got ${realStop.toFixed(3)}s`);
       }
 
-      const realWord = await page.evaluate(async (a) => {
-        const words = window.__heardDev.store.getState().transcripts.sample.words;
+      const realWord = await page.evaluate(async (a, demo) => {
+        const words = window.__heardDev.store.getState().transcripts[demo].words;
         const inSpan = words.filter((w) => w.i >= a.wi && w.i < a.wj);
         const w = inSpan[Math.floor(inSpan.length / 2)];
         const t = w.s + (w.e - w.s) / 2;
@@ -497,17 +505,17 @@ async function main() {
         const lit = [...document.querySelectorAll('[data-testid="word"][data-now="true"]')]
           .map((n) => Number(n.dataset.i));
         return { expect: w.i, text: w.t, lit: [...new Set(lit)] };
-      }, s0);
+      }, s0, DEMO);
       if (realWord.lit.length === 1 && realWord.lit[0] === realWord.expect) {
-        ok('real sample: karaoke word at mid-span', `lit "${realWord.text}"`);
+        ok('real starter: karaoke word at mid-span', `lit "${realWord.text}"`);
       } else {
-        bad('real sample: karaoke word at mid-span', JSON.stringify(realWord));
+        bad('real starter: karaoke word at mid-span', JSON.stringify(realWord));
       }
 
       const sampleLeak = await page.evaluate(() => document.body.innerText);
       const leaked2 = ['OpenAI', 'Groq', 'whisper', 'gpt-4o', 'DeepSeek'].filter((n) => sampleLeak.includes(n));
-      if (!leaked2.length) ok('real sample: no provider/model names on the surface');
-      else bad('real sample: no provider/model names on the surface', leaked2.join(', '));
+      if (!leaked2.length) ok('real starter: no provider/model names on the surface');
+      else bad('real starter: no provider/model names on the surface', leaked2.join(', '));
     }
   }
 
