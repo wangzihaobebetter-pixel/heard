@@ -676,7 +676,7 @@ export default function Interview({ id }: { id: string }) {
 
   const notesPane = (
     <section className="iv__pane iv__notes" data-testid="notes-pane" style={{ ['--tc-width' as string]: tcWidth }}>
-      {interview.sample && !firstRunDismissed ? (
+      {(interview.sample || interview.starter) && !firstRunDismissed ? (
         <div className="iv__firstrun" data-testid="first-run">
           <p className="iv__firstrun-line">{t('interview.firstRun')}</p>
           <button type="button" className="iconbtn" aria-label={t('action.close')} onClick={dismissFirstRun}>
@@ -889,7 +889,14 @@ export default function Interview({ id }: { id: string }) {
           <div className="card-note iv__empty" data-testid="not-heard">
             <p className="iv__empty-title">{t('interview.notHeardTitle')}</p>
             <p className="secondary">{interview.file.name} · {formatBytes(interview.file.size)}</p>
-            <button type="button" className="btn btn--secondary">{t('action.listenOnce')}</button>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              data-testid="not-heard-cta"
+              onClick={() => { if (sttKey.trim()) maybeRunIntake(id); else navigate('bring'); }}
+            >
+              {t('action.listenOnce')}
+            </button>
           </div>
         ) : (
           <div className="iv__reading">
@@ -905,7 +912,7 @@ export default function Interview({ id }: { id: string }) {
                       <p className="iv__empty-title">
                         {t('interview.gapTitle', { from: Math.floor(gap.s / 60), to: minutesOf(gap.e) })}
                       </p>
-                      <button type="button" className="btn btn--secondary">{t('action.tryAgain')}</button>
+                      <button type="button" className="btn btn--secondary" data-testid="gap-retry" onClick={() => maybeRunIntake(id)}>{t('action.tryAgain')}</button>
                     </div>
                   ) : null}
                 </div>
