@@ -32,6 +32,7 @@ const EMPTY: PersistedState = {
   transcripts: {},
   notes: {},
   currentInterviewId: null,
+  positions: {},
   ui: { firstRunSeen: false, sampleDismissed: false },
 };
 
@@ -47,6 +48,11 @@ interface Actions {
   updateInterview: (interviewId: string, patch: Partial<Interview>) => void;
   /** Deletes the interview, its transcript, its notes and its audio blob. */
   deleteInterview: (interviewId: string) => void;
+  /* v3 B11 (§4.5): recoverable delete, favorites, resume position */
+  trashInterview: (interviewId: string) => void;
+  restoreInterview: (interviewId: string) => void;
+  toggleFavorite: (interviewId: string) => void;
+  setPosition: (interviewId: string, sec: number) => void;
   setCurrentInterview: (interviewId: string | null) => void;
 
   /* transcripts */
@@ -159,16 +165,41 @@ export const useStore = create<Store>()(
         delete interviews[interviewId];
         delete transcripts[interviewId];
         delete notes[interviewId];
+        const positions = { ...get().positions };
+        delete positions[interviewId];
         set({
           interviews,
           transcripts,
           notes,
+          positions,
           currentInterviewId: get().currentInterviewId === interviewId ? null : get().currentInterviewId,
         });
         void removeAudio(interviewId);
       },
 
       setCurrentInterview: (interviewId) => set({ currentInterviewId: interviewId }),
+
+      /* ------------------------------------------ v3 B11: trash & favorites */
+
+      // The trash is a decision that can be unmade (§4.5): the row leaves the
+      // Library but every byte stays until the 30-day purge or an explicit
+      // "delete forever" — both of which go through the real deleteInterview.
+      trashInterview: (interviewId) => {
+        get().updateInterview(interviewId, { deletedAt: now(), favorite: false });
+      },
+      restoreInterview: (interviewId) => {
+        const iv = get().interviews[interviewId];
+        if (!iv) return;
+        const { deletedAt, ...rest } = iv;
+        set({ interviews: { ...get().interviews, [interviewId]: rest } });
+      },
+      toggleFavorite: (interviewId) => {
+        const iv = get().interviews[interviewId];
+        if (iv) get().updateInterview(interviewId, { favorite: !iv.favorite });
+      },
+      setPosition: (interviewId, sec) => {
+        set({ positions: { ...get().positions, [interviewId]: +sec.toFixed(1) } });
+      },
 
       /* -------------------------------------------------------- transcripts */
 
@@ -258,6 +289,7 @@ export const useStore = create<Store>()(
         transcripts: s.transcripts,
         notes: s.notes,
         currentInterviewId: s.currentInterviewId,
+        positions: s.positions,
         ui: s.ui,
       }),
       /**
@@ -295,7 +327,15 @@ export const useStore = create<Store>()(
 /* ------------------------------------------------------------- selectors */
 
 export const selectInterviewList = (s: Store): Interview[] =>
-  Object.values(s.interviews).sort((a, b) => b.createdAt - a.createdAt);
+  Object.values(s.interviews)
+    .filter((i) => !i.deletedAt)
+    // ★ floats; inside each band, newest first (§4.5).
+    .sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite) || b.createdAt - a.createdAt);
+
+export const selectTrashed = (s: Store): Interview[] =>
+  Object.values(s.interviews)
+    .filter((i) => !!i.deletedAt)
+    .sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
 
 export const selectInterview = (interviewId: string) => (s: Store): Interview | undefined =>
   s.interviews[interviewId];

@@ -28,7 +28,7 @@ import { href, navigate } from '../router';
 import { listRecoverable, recoverSession, discardSession, useRecorder, type Recoverable } from '../audio/recorder';
 import { searchLibrary } from '../lib/librarySearch';
 import { setPendingSeek } from '../lib/deeplink';
-import { useStore, selectInterviewList } from '../store';
+import { useStore, selectInterviewList, selectTrashed } from '../store';
 import { isStorageDegraded } from '../lib/storage';
 import { formatDuration, minutesOf } from '../lib/time';
 import { formatSheetDate } from '../export/quotesheet';
@@ -178,6 +178,47 @@ function RecoveryCards() {
         </div>
       ))}
     </>
+  );
+}
+
+/* ------------------------------------------------------------- the trash */
+
+/**
+ * §4.5: delete is recoverable for 30 days. The trash is quiet — one line of
+ * micro text unless opened — because a graveyard should not compete with the
+ * library above it.
+ */
+function TrashSection() {
+  const t = useT();
+  const trashed = useStore(selectTrashed);
+  const [open, setOpen] = useState(false);
+  if (trashed.length === 0) return null;
+  return (
+    <section className="library__trash" data-testid="library-trash">
+      <button type="button" className="button button--quiet" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        {t('library.trash', { n: trashed.length })}
+      </button>
+      {open ? (
+        <ul className="library__trash-list">
+          {trashed.map((iv) => (
+            <li key={iv.id} className="library__trash-row">
+              <span className="library__trash-title">{iv.title}</span>
+              <span className="secondary library__trash-when">
+                {t('library.trashedOn', { date: new Date(iv.deletedAt ?? 0).toISOString().slice(0, 10) })}
+              </span>
+              <button type="button" className="button button--secondary" data-testid="trash-restore"
+                onClick={() => useStore.getState().restoreInterview(iv.id)}>
+                {t('library.restore')}
+              </button>
+              <button type="button" className="button button--quiet"
+                onClick={() => { if (window.confirm(t('library.purgeConfirm'))) useStore.getState().deleteInterview(iv.id); }}>
+                {t('library.deleteForever')}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 
@@ -340,6 +381,7 @@ export default function Library() {
             ) : null}
           </>
         ) : null}
+        <TrashSection />
       </main>
 
       {exportOpen ? (
@@ -362,6 +404,7 @@ function Card({
   interview, notes, heardSec, lede,
 }: { interview: Interview; notes: Note[]; heardSec: number; lede: string | null }) {
   const t = useT();
+  const resumeAt = useStore((s) => s.positions[interview.id] ?? 0);
   const [peaks, setPeaks] = useState<Float32Array | null>(null);
   useEffect(() => {
     let live = true;
@@ -376,7 +419,10 @@ function Card({
 
   return (
     <a className="card librarycard" href={href('interview', { id: interview.id })} data-interview={interview.id}>
-      <h2 className="librarycard__title">{interview.title}</h2>
+      <h2 className="librarycard__title">
+        {interview.favorite ? <span className="librarycard__star" aria-hidden="true">★ </span> : null}
+        {interview.title}
+      </h2>
 
       {/* v3 D2: the mini is the recording's fingerprint, not a progress bar —
           the signal colour stays with the player (DESIGN-SYSTEM rule 2). */}
@@ -388,6 +434,12 @@ function Card({
         </span>
         <span className="librarycard__dot" aria-hidden="true">·</span>
         <span className="librarycard__duration tabular">{formatDuration(interview.durationSec)}</span>
+        {resumeAt > 8 ? (
+          <>
+            <span className="librarycard__dot" aria-hidden="true">·</span>
+            <span className="librarycard__resume">{t('library.resumeAt', { at: formatDuration(resumeAt) })}</span>
+          </>
+        ) : null}
       </p>
 
       {listening ? (

@@ -987,15 +987,19 @@ export default function Interview({ id }: { id: string }) {
                 onClick={() => { setMenuOpen(false); fileInputRef.current?.click(); }}>
                 {t('action.locateFile')}
               </button>
+              <button type="button" role="menuitem" className="menu__item" data-testid="menu-favorite"
+                onClick={() => { setMenuOpen(false); useStore.getState().toggleFavorite(id); }}>
+                {interview.favorite ? t('action.unfavorite') : t('action.favorite')}
+              </button>
               <button type="button" role="menuitem" className="menu__item"
                 onClick={() => {
+                  // v3 B11 (§4.5): delete is recoverable — the trash holds it
+                  // for 30 days, so no confirm dialog stands in the way.
                   setMenuOpen(false);
-                  if (window.confirm(t('interview.deleteConfirm'))) {
-                    useStore.getState().deleteInterview(id);
-                    navigate('library');
-                  }
+                  useStore.getState().trashInterview(id);
+                  navigate('library');
                 }}>
-                {t('action.delete')}
+                {t('action.moveToTrash')}
               </button>
             </div>
           ) : null}

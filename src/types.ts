@@ -134,6 +134,11 @@ export interface Interview {
   /** true for starter-library entries (v3) — credit/licence come from the
       starter manifest (src/content), keyed by this interview's id */
   starter?: boolean;
+  /** ★ — pinned to the top of the Library (v3 B11, §4.5) */
+  favorite?: boolean;
+  /** set when moved to the trash; purged for good after 30 days (§4.5).
+      A trashed recording keeps its data — delete is recoverable. */
+  deletedAt?: number;
 }
 
 /* ---------------------------------------------------------------- settings */
@@ -209,5 +214,7 @@ export interface PersistedState {
   notes: Record<string, Note[]>;
   /** the interview the app was last inside, so a reload lands where you were */
   currentInterviewId: string | null;
+  /** interviewId → resume-listening position, seconds (v3 B11, §4.5) */
+  positions: Record<string, number>;
   ui: { firstRunSeen: boolean; sampleDismissed: boolean };
 }

@@ -117,6 +117,9 @@ export class Player {
       return 'ok';
     }
 
+    // Leaving a recording remembers where it stood (v3 B11, §4.5 resume).
+    this.savePosition();
+
     const blob = await resolveAudioBlob(interviewId);
     if (!blob) {
       this.releaseUrl();
@@ -135,8 +138,26 @@ export class Player {
       this.el.load();
       await this.whenReady();
     }
-    usePlayer.getState().setPlayer({ interviewId, currentTime: 0, playing: false, wordIndex: -1 });
+
+    // Resume where the last listen stood — quietly, without playing. Deep in
+    // the tape only: resuming a recording someone barely started is noise, and
+    // near the end it would land on the applause.
+    const saved = useStore.getState().positions[interviewId] ?? 0;
+    const duration = this.el?.duration || Infinity;
+    const resumeAt = saved > 8 && saved < duration - 10 ? saved : 0;
+    if (this.el && resumeAt > 0) this.el.currentTime = resumeAt;
+
+    usePlayer.getState().setPlayer({ interviewId, currentTime: resumeAt, playing: false, wordIndex: -1 });
     return 'ok';
+  }
+
+  /** Persist the playhead for §4.5's resume-listening. Never for a span press
+      (a claim being checked is not "where you were"), never at zero. */
+  private savePosition(): void {
+    if (!this.interviewId || !this.el) return;
+    if (this.mode === 'span') return;
+    const t = this.el.currentTime;
+    if (t > 8) useStore.getState().setPosition(this.interviewId, t);
   }
 
   /**
@@ -334,6 +355,7 @@ export class Player {
   private onPauseEvent = () => {
     usePlayer.getState().setPlayer({ playing: false });
     this.stopLoop();
+    this.savePosition();
   };
 
   private onEnded = () => {

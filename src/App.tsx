@@ -60,6 +60,16 @@ export default function App() {
 
   useEffect(() => { setLang(resolveLang(lang)); }, [lang]);
 
+  /* v3 B11 (§4.5): the trash keeps a recording for 30 days, then lets go. */
+  useEffect(() => {
+    if (!hydrated) return;
+    const s = useStore.getState();
+    const cutoff = Date.now() - 30 * 24 * 3600 * 1000;
+    for (const iv of Object.values(s.interviews)) {
+      if (iv.deletedAt && iv.deletedAt < cutoff) s.deleteInterview(iv.id);
+    }
+  }, [hydrated]);
+
   /* v3 B3: a provider key arriving is what every `waiting` recording was
      waiting FOR — sweep them instead of making the user re-open each one.
      Also collects interviews stranded at `listening` by a closed tab. */

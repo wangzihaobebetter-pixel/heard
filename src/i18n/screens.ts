@@ -451,3 +451,37 @@ registerStrings('exportSheet', {
     'saved': '已保存。',
   },
 });
+
+/* ------------------------------------- v3 B11: favorites, trash, resume */
+
+registerStrings('action', {
+  en: {
+    'favorite': 'Add to favorites',
+    'unfavorite': 'Remove from favorites',
+    'moveToTrash': 'Move to trash',
+  },
+  'zh-CN': {
+    'favorite': '加入收藏',
+    'unfavorite': '取消收藏',
+    'moveToTrash': '移到回收站',
+  },
+});
+
+registerStrings('library', {
+  en: {
+    'resumeAt': 'resume at {at}',
+    'trash': 'Trash ({n})',
+    'trashedOn': 'deleted {date}',
+    'restore': 'Restore',
+    'deleteForever': 'Delete forever',
+    'purgeConfirm': 'Delete this recording forever? This cannot be undone.',
+  },
+  'zh-CN': {
+    'resumeAt': '续听 {at}',
+    'trash': '回收站（{n}）',
+    'trashedOn': '删除于 {date}',
+    'restore': '恢复',
+    'deleteForever': '永久删除',
+    'purgeConfirm': '永久删除这条录音？此操作不可撤销。',
+  },
+});
