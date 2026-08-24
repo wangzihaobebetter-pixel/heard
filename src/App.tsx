@@ -27,7 +27,7 @@ function applyTheme(theme: 'system' | 'paper' | 'ink') {
     : theme;
   document.documentElement.dataset.theme = resolved;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', resolved === 'ink' ? '#131210' : '#F6F4EF');
+  if (meta) meta.setAttribute('content', resolved === 'ink' ? '#131211' : '#FAF8F4');
 }
 
 export default function App() {

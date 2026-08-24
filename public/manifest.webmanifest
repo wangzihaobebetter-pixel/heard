@@ -12,8 +12,8 @@
     "minimal-ui"
   ],
   "orientation": "portrait-primary",
-  "background_color": "#161210",
-  "theme_color": "#161210",
+  "background_color": "#FAF8F4",
+  "theme_color": "#FAF8F4",
   "categories": [
     "productivity",
     "news",
