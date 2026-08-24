@@ -63,8 +63,8 @@ export default function Waveform({ peaks, progress, span, className }: WaveformP
         for (let j = from; j < to && j < peaks.length; j++) if (peaks[j] > v) v = peaks[j];
         const frac = n === 1 ? 0 : i / (n - 1);
         const inSpan = span && frac >= span.from && frac <= span.to;
-        ctx.fillStyle = inSpan ? accent : frac <= progress ? played : muted;
-        ctx.globalAlpha = inSpan ? 1 : frac <= progress ? 0.95 : 0.5;
+        ctx.fillStyle = inSpan ? accent : progress > 0 && frac <= progress ? played : muted;
+        ctx.globalAlpha = inSpan ? 1 : progress > 0 && frac <= progress ? 0.95 : 0.5;
         // Perceptual lift: keep a floor so silence still draws a grain, and a
         // gentle curve so mid-loudness bars don't all read identical.
         const bh = Math.max(2, (0.12 + 0.88 * Math.pow(v, 1.25)) * (h - 2));

@@ -65,7 +65,7 @@ export default function DropZone({ onFile, label, hint, disabled }: DropZoneProp
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
       >
-        <span className="dropzone__mark" aria-hidden="true">▶</span>
+        <span className="dropzone__mark" aria-hidden="true">⤓</span>
         <span className="dropzone__label">{label}</span>
         <span className="dropzone__hint micro">{hint}</span>
       </button>

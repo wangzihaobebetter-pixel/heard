@@ -378,7 +378,9 @@ function Card({
     <a className="card librarycard" href={href('interview', { id: interview.id })} data-interview={interview.id}>
       <h2 className="librarycard__title">{interview.title}</h2>
 
-      {peaks ? <Waveform className="librarycard__wave" peaks={peaks} progress={progress} /> : null}
+      {/* v3 D2: the mini is the recording's fingerprint, not a progress bar —
+          the signal colour stays with the player (DESIGN-SYSTEM rule 2). */}
+      {peaks ? <Waveform className="librarycard__wave" peaks={peaks} progress={0} /> : null}
 
       <p className="librarycard__meta secondary">
         <span className="librarycard__date">
