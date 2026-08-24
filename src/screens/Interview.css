@@ -8,8 +8,15 @@
 html[data-screen='interview'] .appbar { display: none; }
 html[data-screen='interview'], html[data-screen='interview'] body { overflow: hidden; }
 
+/* `flex: 1` is `flex: 1 1 0%`, and in a column flex parent the flex-basis wins
+   over `height` for the main size — so this screen was never 100dvh tall at
+   all: it grew to the height of the transcript (10,000+ px on a long lecture),
+   `.shell` grew with it, and `body { overflow: hidden }` clipped the surplus.
+   Nothing below the first screen could be reached, and no pane ever had a
+   scrollport to scroll, which is why the karaoke highlight ran off the bottom
+   and stayed there. `flex: none` lets the declared height be the height. */
 .iv {
-  flex: 1;
+  flex: none;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -187,6 +194,33 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
 .iv__notes, .iv__transcript { flex: 1; }
 
 .iv__transcript { padding: 0; }
+
+/* v3 B13: something is already written under this tab. One dot, stated once —
+   it goes away the first time the tab is opened and never comes back. */
+.seg__waiting {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: var(--space-2);
+  vertical-align: 0.35em;
+  border-radius: 50%;
+  background: var(--accent, currentColor);
+}
+
+/* v3 B13: the transcript pane is the containing block for the way back. */
+.iv__transcript { position: relative; }
+
+/* Offered only while the reader has scrolled away from the voice. It sits above
+   the collapsed player, centred, and never covers the text it refers to. */
+.iv__follow-back {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--player-sheet-collapsed) + var(--space-4));
+  z-index: 3;
+  box-shadow: var(--elev-1);
+  white-space: nowrap;
+}
 
 .iv__transcript-scroll {
   height: 100%;

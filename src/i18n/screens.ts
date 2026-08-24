@@ -282,6 +282,8 @@ registerStrings('interview', {
     'reviewTitle': 'Review your marks ({n})',
     'reviewPlaceholder': 'What was this moment?',
     'reviewKeep': 'Keep',
+    'followBack': 'Back to the voice',
+    'aiWaiting': 'A summary is already written for this one',
     'reviewRemove': 'Remove',
   },
   'zh-CN': {
@@ -292,6 +294,8 @@ registerStrings('interview', {
     'reviewTitle': '整理你的标记（{n}）',
     'reviewPlaceholder': '这一刻是什么？',
     'reviewKeep': '保留',
+    'followBack': '回到当前句',
+    'aiWaiting': '这一条已经写好了摘要',
     'reviewRemove': '删除',
   },
 });

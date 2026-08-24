@@ -43,6 +43,7 @@ import type { Citation, StarterArtifacts } from '../content/schema';
 import './Interview.css';
 
 const FIRST_RUN_KEY = 'heard-firstrun-line';
+const AI_SEEN_KEY = 'heard-ai-tab-seen';
 const AFTERGLOW_MS = 1600;
 /** The transcript must not fight a user who is reading it (DESIGN §5, precision). */
 const USER_SCROLL_GRACE_MS = 2000;
@@ -119,6 +120,18 @@ export default function Interview({ id }: { id: string }) {
 
   const transcriptRef = useRef<HTMLDivElement>(null);
   const lastUserScrollRef = useRef(0);
+  /* v3 B13: `scrollTo` fires the very same scroll events a finger does. These
+     two mark the window in which a scroll is ours, so following can never read
+     its own movement as the user taking the transcript over. */
+  const autoScrollUntilRef = useRef(0);
+  const followSettleRef = useRef(0);
+  const [awayFromVoice, setAwayFromVoice] = useState(false);
+  /* v3 B13: every starter ships a written summary, chapters and concepts, but
+     the screen opens on Notes and the AI segment said nothing — so the work was
+     there and nobody knew. A tab that has something waiting says so, once. */
+  const [aiSeen, setAiSeen] = useState(() => {
+    try { return localStorage.getItem(AI_SEEN_KEY) === '1'; } catch { return true; }
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const afterglowTimer = useRef<number>();
 
@@ -374,8 +387,51 @@ export default function Interview({ id }: { id: string }) {
     // The upper third, so the sentence has room to run underneath it (§5.3).
     const top = target.offsetTop - pane.clientHeight / 3;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    autoScrollUntilRef.current = Date.now() + (reduce ? 120 : 900);
+    setAwayFromVoice(false);
     pane.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'auto' : 'smooth' });
   }, []);
+
+  /* v3 B13: the page turns itself.
+     The karaoke cursor has always known which word is being said; nothing ever
+     carried that to the scroll position, so `scrollToSpan` fired only on four
+     discrete acts (pressing a note, a search hit, a citation chip, a deep link)
+     and never during playback. On anything longer than one screen the lit word
+     therefore moved somewhere you could not see it — the highlight was correct
+     and invisible, which is the product's own promise inverted.
+     The band is deliberately generous: following every word would be a
+     treadmill; following only once the voice has left the comfortable middle
+     reads like a page turn. And a hand on the transcript always wins — while
+     the grace window is open we do not move, we only offer the way back. */
+  useEffect(() => {
+    const pane = transcriptRef.current;
+    if (!pane || wordIndex < 0) return;
+    // On mobile the transcript is one segment of a switch; do not scroll a pane
+    // the reader is not looking at.
+    if (window.innerWidth < 960 && tab !== 'transcript') return;
+    const word = pane.querySelector<HTMLElement>(`.w[data-i='${wordIndex}']`);
+    if (!word) return;
+    const paneBox = pane.getBoundingClientRect();
+    const wordBox = word.getBoundingClientRect();
+    const rel = wordBox.top - paneBox.top;
+    const h = pane.clientHeight;
+    if (h <= 0) return;
+    const now = Date.now();
+    if (now - lastUserScrollRef.current < USER_SCROLL_GRACE_MS) {
+      setAwayFromVoice(rel < 0 || rel + wordBox.height > h);
+      return;
+    }
+    setAwayFromVoice(false);
+    // The comfortable middle. Inside it, the voice is already where you read.
+    if (rel >= h * 0.12 && rel + wordBox.height <= h * 0.78) return;
+    // One smooth scroll at a time, or the next word retargets mid-flight.
+    if (now < followSettleRef.current) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    autoScrollUntilRef.current = now + (reduce ? 120 : 900);
+    followSettleRef.current = now + (reduce ? 140 : 620);
+    // The upper third, so the sentence has room to run underneath it (§5.3).
+    pane.scrollTo({ top: Math.max(0, pane.scrollTop + rel - h / 3), behavior: reduce ? 'auto' : 'smooth' });
+  }, [wordIndex, tab]);
 
   const press = useCallback((note: Note) => {
     setPressedId(note.id);
@@ -910,7 +966,14 @@ export default function Interview({ id }: { id: string }) {
       <div
         className="iv__transcript-scroll"
         ref={transcriptRef}
-        onScroll={() => { lastUserScrollRef.current = Date.now(); }}
+        onScroll={() => {
+          // Our own smooth scroll is still a scroll event; it must not read as
+          // the user pushing back.
+          if (Date.now() < autoScrollUntilRef.current) return;
+          lastUserScrollRef.current = Date.now();
+        }}
+        onWheel={() => { autoScrollUntilRef.current = 0; lastUserScrollRef.current = Date.now(); }}
+        onTouchMove={() => { autoScrollUntilRef.current = 0; lastUserScrollRef.current = Date.now(); }}
         onDoubleClick={onTranscriptDoubleClick}
       >
         {noTranscript ? (
@@ -949,6 +1012,23 @@ export default function Interview({ id }: { id: string }) {
           </div>
         )}
       </div>
+      {/* v3 B13: offered only while you are away from the voice — following
+          yields to your hand, and this is how you get back without hunting. */}
+      {awayFromVoice && !noTranscript ? (
+        <button
+          type="button"
+          className="btn btn--secondary iv__follow-back"
+          data-testid="follow-back"
+          onClick={() => {
+            const w = transcript?.words[wordIndex];
+            lastUserScrollRef.current = 0;
+            followSettleRef.current = 0;
+            if (w) scrollToSpan({ s: w.s, e: w.e, wi: w.i, wj: w.i + 1, quality: 'word' });
+          }}
+        >
+          {t('interview.followBack')}
+        </button>
+      ) : null}
     </section>
   );
 
@@ -1068,9 +1148,17 @@ export default function Interview({ id }: { id: string }) {
         <button
           type="button" role="tab" className="seg" data-on={tab === 'ai'}
           data-testid="tab-ai" aria-selected={tab === 'ai'}
-          onClick={() => setTab('ai')}
+          data-waiting={artifacts && !aiSeen ? 'true' : 'false'}
+          onClick={() => {
+            setTab('ai');
+            setAiSeen(true);
+            try { localStorage.setItem(AI_SEEN_KEY, '1'); } catch { /* private mode */ }
+          }}
         >
           {t('interview.tabAi')}
+          {artifacts && !aiSeen ? (
+            <span className="seg__waiting" data-testid="ai-waiting" aria-label={t('interview.aiWaiting')} />
+          ) : null}
         </button>
       </div>
 

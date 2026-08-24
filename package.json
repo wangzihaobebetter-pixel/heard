@@ -19,7 +19,8 @@
     "make:sample": "node scripts/make-sample.mjs",
     "icons": "node make-icons.mjs",
     "verify:export": "node verify-export.mjs",
-    "verify:export:golden": "node verify-export.mjs --golden"
+    "verify:export:golden": "node verify-export.mjs --golden",
+    "verify:follow": "node verify-follow.mjs"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",
