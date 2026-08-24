@@ -77,3 +77,34 @@
 .ai__flag:hover span:last-child { color: var(--ink); }
 
 .ai__regen { align-self: flex-start; }
+
+/* ----------------------------------------- v3 B12: styles + saved prompts */
+
+.ai__styles { display: flex; gap: var(--space-2); }
+.ai__regen-row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+
+.ai__prompt-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ai__prompt {
+  border: 1px solid var(--hairline-2);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-2);
+  padding: 6px 14px;
+  font-size: var(--size-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+.ai__prompt:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
+.ai__prompt:disabled { opacity: 0.5; }
+
+.ai__prompt-add .input { width: 100%; }
+
+.ai__answer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}

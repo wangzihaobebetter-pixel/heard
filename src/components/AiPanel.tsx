@@ -7,8 +7,9 @@
  * panel never renders AI text as if it were the user's: it is visibly the
  * machine's reading of the tape, checkable in one press.
  */
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import type { Citation, StarterArtifacts } from '../content/schema';
+import type { PromptResult, SummaryStyle } from '../ai/artifacts';
 import { formatTimecode } from '../lib/time';
 import { useT } from '../i18n';
 import './AiPanel.css';
@@ -19,8 +20,15 @@ export interface AiPanelProps {
   /** whether this recording can generate (transcript present, not a starter) */
   canGenerate: boolean;
   onCite: (c: Citation) => void;
-  onGenerate: () => void;
+  onGenerate: (style?: SummaryStyle) => void;
   onConnect: () => void;
+  /** v3 B12 (§4.4): saved prompts — presets + the user's own, re-runnable */
+  prompts: string[];
+  canAsk: boolean;
+  promptBusy: boolean;
+  promptResult: { prompt: string; result: PromptResult } | null;
+  onRunPrompt: (prompt: string) => void;
+  onSavePrompt: (prompt: string) => void;
 }
 
 /** Summary text with its [n] markers rendered as pressable citation chips. */
@@ -53,8 +61,73 @@ function SummaryText({ text, citations, onCite }: {
   );
 }
 
-export default function AiPanel({ artifacts, status, canGenerate, onCite, onGenerate, onConnect }: AiPanelProps) {
+export default function AiPanel({
+  artifacts, status, canGenerate, onCite, onGenerate, onConnect,
+  prompts, canAsk, promptBusy, promptResult, onRunPrompt, onSavePrompt,
+}: AiPanelProps) {
   const t = useT();
+  const [style, setStyle] = useState<SummaryStyle>('concise');
+  const [draft, setDraft] = useState('');
+
+  /* §4.4 saved prompts: pressable on any transcribed recording; the answer
+     wears the same citation chips as everything else. Rendered in both the
+     ready state and (for generated-capable recordings) beneath the state
+     card, so a recording without a summary can still be asked. */
+  const promptBlock = canAsk ? (
+    <section className="ai__section" data-testid="ai-prompts">
+      <h2 className="micro ai__label">{t('ai.prompts')}</h2>
+      <div className="ai__prompt-row">
+        {prompts.map((pr) => (
+          <button
+            key={pr}
+            type="button"
+            className="ai__prompt"
+            disabled={promptBusy}
+            onClick={() => onRunPrompt(pr)}
+          >
+            {pr}
+          </button>
+        ))}
+      </div>
+      <div className="ai__prompt-add">
+        <input
+          className="input"
+          data-testid="ai-prompt-input"
+          type="text"
+          placeholder={t('ai.promptPlaceholder')}
+          value={draft}
+          disabled={promptBusy}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && draft.trim()) { onRunPrompt(draft.trim()); onSavePrompt(draft.trim()); setDraft(''); }
+          }}
+        />
+      </div>
+      {promptBusy ? <p className="secondary">{t('ai.asking')}</p> : null}
+      {promptResult && !promptBusy ? (
+        <div className="ai__answer" data-testid="ai-answer">
+          <p className="micro ai__label">{promptResult.prompt}</p>
+          <SummaryText text={promptResult.result.answer} citations={promptResult.result.citations} onCite={onCite} />
+        </div>
+      ) : null}
+    </section>
+  ) : null;
+
+  const styleRow = canGenerate ? (
+    <div className="ai__styles" data-testid="ai-styles">
+      {(['concise', 'detailed', 'study'] as const).map((s) => (
+        <button
+          key={s}
+          type="button"
+          className="modechip"
+          aria-pressed={style === s}
+          onClick={() => setStyle(s)}
+        >
+          {t(`ai.style_${s}`)}
+        </button>
+      ))}
+    </div>
+  ) : null;
 
   if (status !== 'ready' || !artifacts) {
     return (
@@ -73,12 +146,14 @@ export default function AiPanel({ artifacts, status, canGenerate, onCite, onGene
           canGenerate ? (
             <>
               <p>{t('ai.generateWhy')}</p>
-              <button type="button" className="btn btn--secondary" data-testid="ai-generate" onClick={onGenerate}>
+              {styleRow}
+              <button type="button" className="btn btn--secondary" data-testid="ai-generate" onClick={() => onGenerate(style)}>
                 {t('ai.generate')}
               </button>
             </>
           ) : <p>{t('ai.notYet')}</p>
         ) : null}
+        {promptBlock}
       </div>
     );
   }
@@ -138,10 +213,15 @@ export default function AiPanel({ artifacts, status, canGenerate, onCite, onGene
         </section>
       ) : null}
 
+      {promptBlock}
+
       {canGenerate ? (
-        <button type="button" className="btn btn--quiet ai__regen" data-testid="ai-regenerate" onClick={onGenerate}>
-          {t('ai.regenerate')}
-        </button>
+        <div className="ai__regen-row">
+          {styleRow}
+          <button type="button" className="btn btn--quiet ai__regen" data-testid="ai-regenerate" onClick={() => onGenerate(style)}>
+            {t('ai.regenerate')}
+          </button>
+        </div>
       ) : null}
     </div>
   );

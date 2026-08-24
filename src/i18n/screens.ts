@@ -485,3 +485,32 @@ registerStrings('library', {
     'purgeConfirm': '永久删除这条录音？此操作不可撤销。',
   },
 });
+
+/* --------------------------------------- v3 B12: styles + saved prompts */
+
+registerStrings('ai', {
+  en: {
+    'style_concise': 'Concise',
+    'style_detailed': 'Detailed',
+    'style_study': 'Study guide',
+    'prompts': 'Ask this recording',
+    'promptPlaceholder': 'Ask your own question — Enter runs and saves it',
+    'asking': 'Reading the tape…',
+    'preset1': 'Quiz me on this recording',
+    'preset2': 'List every definition or formula, with its conditions',
+    'preset3': 'What did I miss if I only skimmed?',
+    'preset4': 'What would an exam ask from this?',
+  },
+  'zh-CN': {
+    'style_concise': '精简',
+    'style_detailed': '详尽',
+    'style_study': '复习提纲',
+    'prompts': '问这段录音',
+    'promptPlaceholder': '问你自己的问题——回车运行并保存',
+    'asking': '正在读带子…',
+    'preset1': '就这段录音考考我',
+    'preset2': '列出所有定义或公式及其条件',
+    'preset3': '如果我只是略读，我错过了什么？',
+    'preset4': '考试会从这里出什么题？',
+  },
+});

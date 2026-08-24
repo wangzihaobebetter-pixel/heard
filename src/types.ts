@@ -163,6 +163,8 @@ export interface LlmSettings {
   baseUrl: string;
   key: string;
   model: string;
+  /** user-defined saved prompts, re-runnable on any recording (v3 B12, §4.4) */
+  savedPrompts?: string[];
 }
 
 export interface UiSettings {

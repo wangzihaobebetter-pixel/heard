@@ -36,7 +36,7 @@ import Player, { type SheetHeight } from '../components/Player';
 import TranscriptParagraph, { buildParagraphs, type Paragraph } from '../components/TranscriptParagraph';
 import AiPanel from '../components/AiPanel';
 import ExportSheet from '../components/ExportSheet';
-import { generateArtifacts, getArtifacts } from '../ai/artifacts';
+import { generateArtifacts, getArtifacts, runPrompt, type PromptResult, type SummaryStyle } from '../ai/artifacts';
 import { starterMeta } from '../content/load';
 import { takePendingSeek } from '../lib/deeplink';
 import type { Citation, StarterArtifacts } from '../content/schema';
@@ -206,6 +206,8 @@ export default function Interview({ id }: { id: string }) {
     setReplaceText('');
     setReplaceNote(null);
     setEditingWord(null);
+    setPromptResult(null);
+    setPromptBusy(false);
   }, [id]);
 
   /* The headless driving surface for verify-interview.mjs and the screenshot
@@ -249,12 +251,38 @@ export default function Interview({ id }: { id: string }) {
     return () => { live = false; };
   }, [id, llmKey, transcript]);
 
-  const runGenerate = useCallback(async () => {
+  const runGenerate = useCallback(async (style?: SummaryStyle) => {
     setAiStatus('generating');
-    const r = await generateArtifacts(id);
+    const r = await generateArtifacts(id, { style });
     if (r.ok) { setArtifacts(r.artifacts); setAiStatus('ready'); }
     else setAiStatus(r.reason === 'no-key' ? 'no-key' : 'failed');
   }, [id]);
+
+  /* v3 B12 (§4.4): saved prompts. Four shipped presets from the string table
+     plus the user's own from settings; an asked question that was typed is
+     also saved for next time. */
+  const savedPrompts = useStore((st) => st.settings.llm.savedPrompts);
+  const [promptBusy, setPromptBusy] = useState(false);
+  const [promptResult, setPromptResult] = useState<{ prompt: string; result: PromptResult } | null>(null);
+  const promptList = useMemo(() => {
+    const presets = [t('ai.preset1'), t('ai.preset2'), t('ai.preset3'), t('ai.preset4')];
+    return [...presets, ...(savedPrompts ?? [])];
+  }, [savedPrompts, t]);
+
+  const runSavedPrompt = useCallback(async (prompt: string) => {
+    setPromptBusy(true);
+    setPromptResult(null);
+    const r = await runPrompt(id, prompt);
+    setPromptBusy(false);
+    if (r.ok) setPromptResult({ prompt, result: r.result });
+    else setNotice(t(r.reason === 'no-key' ? 'ai.connectWhy' : 'ai.failed'));
+  }, [id, t]);
+
+  const savePrompt = useCallback((prompt: string) => {
+    const cur = useStore.getState().settings.llm.savedPrompts ?? [];
+    if (cur.includes(prompt)) return;
+    useStore.getState().setSettings({ llm: { savedPrompts: [...cur, prompt].slice(-12) } });
+  }, []);
 
   /* ------------------------------------------------------------ the intake */
 
@@ -1055,8 +1083,14 @@ export default function Interview({ id }: { id: string }) {
             status={aiStatus}
             canGenerate={canGenerate}
             onCite={pressCitation}
-            onGenerate={() => { void runGenerate(); }}
+            onGenerate={(style) => { void runGenerate(style); }}
             onConnect={() => navigate('settings')}
+            prompts={promptList}
+            canAsk={(transcript?.words.length ?? 0) >= 40 && !!llmKey.trim()}
+            promptBusy={promptBusy}
+            promptResult={promptResult}
+            onRunPrompt={(p) => { void runSavedPrompt(p); }}
+            onSavePrompt={savePrompt}
           />
         </section>
       </div>

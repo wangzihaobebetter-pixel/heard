@@ -97,11 +97,23 @@ export type GenerateResult =
   | { ok: true; artifacts: StarterArtifacts }
   | { ok: false; reason: 'no-key' | 'no-transcript' | 'failed' };
 
+/** §4.4 summary style presets — reshaping is a legitimate re-read, not a new law. */
+export type SummaryStyle = 'concise' | 'detailed' | 'study';
+
+const STYLE_LINES: Record<SummaryStyle, string> = {
+  concise: 'Style: CONCISE — the summary is 1–2 short paragraphs, only the load-bearing claims.',
+  detailed: 'Style: DETAILED — the summary is 4–6 paragraphs and follows the recording\'s own order.',
+  study: 'Style: STUDY GUIDE — the summary is organised as points a student would revise from, each one checkable.',
+};
+
 /**
  * Generate, verify, persist. One provider call for the whole recording; the
  * verification is the same shape as the build-time gate: align or drop.
  */
-export async function generateArtifacts(interviewId: string): Promise<GenerateResult> {
+export async function generateArtifacts(
+  interviewId: string,
+  opts: { style?: SummaryStyle } = {},
+): Promise<GenerateResult> {
   const store = useStore.getState();
   const llm = store.settings.llm;
   if (!llm.key.trim()) return { ok: false, reason: 'no-key' };
@@ -112,6 +124,7 @@ export async function generateArtifacts(interviewId: string): Promise<GenerateRe
   const title = store.interviews[interviewId]?.title;
   const user = [
     title ? `Recording: ${title}` : '',
+    opts.style ? STYLE_LINES[opts.style] : '',
     `Language: ${t.lang}. Write in this language.`,
     'Each transcript line begins with the word index of its first word, in square brackets.',
     '',
@@ -174,4 +187,77 @@ export async function generateArtifacts(interviewId: string): Promise<GenerateRe
   memory.set(interviewId, artifacts);
   try { await set(artifactsKey(interviewId), artifacts); } catch { /* memory copy still serves */ }
   return { ok: true, artifacts };
+}
+
+
+/* ------------------------------------------------------------ saved prompts */
+
+/**
+ * §4.4 Saved prompts (the Tactiq table stake): a question re-runnable over any
+ * recording, answered under the same law as everything else — verbatim quotes,
+ * re-aligned or dropped. The four shipped presets live in the string table
+ * (they are copy); user-defined ones persist in settings.llm.savedPrompts.
+ */
+export interface PromptResult {
+  answer: string;
+  citations: (Citation | null)[];
+}
+
+export async function runPrompt(interviewId: string, prompt: string): Promise<
+  | { ok: true; result: PromptResult }
+  | { ok: false; reason: 'no-key' | 'no-transcript' | 'failed' }
+> {
+  const store = useStore.getState();
+  const llm = store.settings.llm;
+  if (!llm.key.trim()) return { ok: false, reason: 'no-key' };
+  const t = store.transcripts[interviewId];
+  const words = t?.words ?? [];
+  if (words.length < 40) return { ok: false, reason: 'no-transcript' };
+
+  const system = [
+    'You are answering ONE question about the transcript of a recording, for a student who will check you against the tape.',
+    '',
+    'Absolute rules:',
+    '1. Ground every claim in the transcript. Mark grounded claims inline with [1], [2]… and list a VERBATIM quote for each marker in `citations`, in order — exact characters, never paraphrased, never joined from separate passages.',
+    '2. If the transcript does not answer the question, say so plainly instead of inventing.',
+    '3. Word indices exist so you can read; never use them in the answer, never invent timestamps.',
+    '',
+    'Answer with JSON only: {"answer":"…[1]…","citations":["…"]}',
+  ].join('\n');
+
+  const user = [
+    `Question: ${prompt}`,
+    `Language: answer in the language of the question.`,
+    '',
+    '--- TRANSCRIPT ---',
+    renderWindow(words, 0, words.length),
+    '--- END TRANSCRIPT ---',
+  ].join('\n');
+
+  let raw: string;
+  try {
+    raw = await completeJson(system, user, { baseUrl: llm.baseUrl, key: llm.key, model: llm.model });
+  } catch {
+    return { ok: false, reason: 'failed' };
+  }
+  const m = /\{[\s\S]*\}/.exec(raw);
+  if (!m) return { ok: false, reason: 'failed' };
+  let parsed: { answer?: unknown; citations?: unknown };
+  try { parsed = JSON.parse(m[0]) as { answer?: unknown; citations?: unknown }; } catch { return { ok: false, reason: 'failed' }; }
+  const answer = typeof parsed.answer === 'string' ? parsed.answer : '';
+  if (!answer) return { ok: false, reason: 'failed' };
+
+  const index = buildTokenIndex(words);
+  const citations = (Array.isArray(parsed.citations) ? parsed.citations : []).map((q) => {
+    const quote = typeof q === 'string' ? q.trim() : '';
+    if (!quote) return null;
+    const { anchor, ratio } = alignQuote(quote, words, { index, segments: t.segments });
+    if (anchor.quality !== 'word' || anchor.wi == null || anchor.wj == null || (ratio ?? 0) < MIN_ALIGN) return null;
+    return {
+      quote: words.slice(anchor.wi, anchor.wj).map((w) => w.t).join(' '),
+      wi: anchor.wi, wj: anchor.wj, s: anchor.s, e: anchor.e,
+      corrob: +(ratio ?? 0).toFixed(4),
+    };
+  });
+  return { ok: true, result: { answer, citations } };
 }
