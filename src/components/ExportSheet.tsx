@@ -12,22 +12,32 @@
  * block lifted out of DESIGN.md §4.5. There is no second rendering path that
  * could drift from the real one.
  */
-import { useEffect, useMemo, useRef } from 'react';
-import type { Interview, Note } from '../types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Interview, Note, Transcript } from '../types';
+import type { StarterArtifacts } from '../content/schema';
 import { useT } from '../i18n';
 import { buildQuoteSheet, isQuoteSheetEmpty, quoteSheetFilename } from '../export/quotesheet';
+import {
+  blobToDataUri, download as saveFile, exportBasename,
+  renderJson, renderMarkdown, renderShareHtml, renderSrt, renderTxt, renderVtt,
+} from '../export/formats';
+import { getAudio } from '../lib/storage';
+import Toggle from './Toggle';
 import './ui.css';
 import './ExportSheet.css';
 
 export interface ExportSheetProps {
   interview: Interview;
   notes: Note[];
+  /** v3 B7: the full-format exports need the words and the AI layer */
+  transcript?: Transcript | null;
+  artifacts?: StarterArtifacts | null;
   onClose: () => void;
   /** the screen owns the toast, so the sheet just says what happened */
   onCopied?: (message: string) => void;
 }
 
-export default function ExportSheet({ interview, notes, onClose, onCopied }: ExportSheetProps) {
+export default function ExportSheet({ interview, notes, transcript, artifacts, onClose, onCopied }: ExportSheetProps) {
   const t = useT();
   const panelRef = useRef<HTMLDivElement>(null);
   const empty = isQuoteSheetEmpty(notes);
@@ -81,6 +91,49 @@ export default function ExportSheet({ interview, notes, onClose, onCopied }: Exp
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  /* ------------------------------------------------- v3 B7: full formats */
+
+  const [withTranscript, setWithTranscript] = useState(true);
+  const [summaryOnly, setSummaryOnly] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const base = exportBasename(interview);
+  const input = { interview, transcript, notes, artifacts };
+  const hasWords = (transcript?.words.length ?? 0) > 0;
+
+  async function exportAs(kind: string) {
+    setBusy(kind);
+    try {
+      if (kind === 'md') saveFile(`${base}.md`, renderMarkdown(input, { transcript: withTranscript }), 'text/markdown;charset=utf-8');
+      if (kind === 'txt') saveFile(`${base}.txt`, renderTxt(input));
+      if (kind === 'srt' && transcript) saveFile(`${base}.srt`, renderSrt(transcript));
+      if (kind === 'vtt' && transcript) saveFile(`${base}.vtt`, renderVtt(transcript), 'text/vtt;charset=utf-8');
+      if (kind === 'json') saveFile(`${base}.json`, renderJson(input), 'application/json;charset=utf-8');
+      if (kind === 'audio') {
+        const blob = await getAudio(interview.id);
+        if (blob) saveFile(interview.file.name || `${base}.audio`, blob);
+      }
+      if (kind === 'html') {
+        // Inline the tape when it is on this device; the document still stands without it.
+        const blob = await getAudio(interview.id);
+        const audioDataUri = blob && !summaryOnly ? await blobToDataUri(blob) : undefined;
+        saveFile(`${base}.html`, renderShareHtml(input, { audioDataUri, summaryOnly }), 'text/html;charset=utf-8');
+      }
+      onCopied?.(t('exportSheet.saved'));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const formats: { kind: string; label: string; enabled: boolean }[] = [
+    { kind: 'md', label: 'Markdown', enabled: true },
+    { kind: 'txt', label: 'TXT', enabled: hasWords },
+    { kind: 'srt', label: 'SRT', enabled: hasWords },
+    { kind: 'vtt', label: 'VTT', enabled: hasWords },
+    { kind: 'json', label: 'JSON', enabled: true },
+    { kind: 'html', label: t('exportSheet.htmlShare'), enabled: true },
+    { kind: 'audio', label: t('exportSheet.audio'), enabled: interview.file.kept },
+  ];
+
   return (
     <div className="sheet" role="dialog" aria-modal="true" aria-label={t('exportSheet.title')} data-testid="export-sheet">
       <button type="button" className="sheet__scrim" aria-label={t('action.close')} onClick={onClose} />
@@ -97,6 +150,42 @@ export default function ExportSheet({ interview, notes, onClose, onCopied }: Exp
             ✕
           </button>
         </header>
+
+        {/* v3 B7: every format the recording can honestly produce (§4.6). */}
+        <div className="sheet__formats" data-testid="export-formats">
+          <p className="micro sheet__formats-label">{t('exportSheet.formats')}</p>
+          <div className="sheet__formats-row">
+            {formats.filter((f) => f.enabled).map((f) => (
+              <button
+                key={f.kind}
+                type="button"
+                className="button button--secondary"
+                data-testid={`export-${f.kind}`}
+                disabled={busy !== null}
+                onClick={() => { void exportAs(f.kind); }}
+              >
+                {busy === f.kind ? '…' : f.label}
+              </button>
+            ))}
+          </div>
+          <div className="sheet__formats-opts">
+            {hasWords ? (
+              <Toggle
+                id="export-with-transcript"
+                checked={withTranscript}
+                onChange={setWithTranscript}
+                label={t('exportSheet.withTranscript')}
+              />
+            ) : null}
+            <Toggle
+              id="export-summary-only"
+              checked={summaryOnly}
+              onChange={setSummaryOnly}
+              label={t('exportSheet.summaryOnly')}
+              hint={t('exportSheet.summaryOnlyWhy')}
+            />
+          </div>
+        </div>
 
         {empty ? (
           <div className="notice">

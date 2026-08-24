@@ -35,6 +35,7 @@ import SelectionPill from '../components/SelectionPill';
 import Player, { type SheetHeight } from '../components/Player';
 import TranscriptParagraph, { buildParagraphs, type Paragraph } from '../components/TranscriptParagraph';
 import AiPanel from '../components/AiPanel';
+import ExportSheet from '../components/ExportSheet';
 import { generateArtifacts, getArtifacts } from '../ai/artifacts';
 import { starterMeta } from '../content/load';
 import { takePendingSeek } from '../lib/deeplink';
@@ -215,6 +216,18 @@ export default function Interview({ id }: { id: string }) {
   }, []);
 
   /* ------------------------------------------------------------ the AI layer */
+
+  /* v3 B7: the ⋯ menu dispatches `heard:export`; this screen hosts the sheet.
+     (v2 dispatched the event and nothing anywhere listened — the button was
+     dead chrome. The sheet lives HERE because this screen has the data.) */
+  const [exportOpen, setExportOpen] = useState(false);
+  useEffect(() => {
+    const onExport = (e: Event) => {
+      if ((e as CustomEvent<{ id?: string }>).detail?.id === id) setExportOpen(true);
+    };
+    window.addEventListener('heard:export', onExport);
+    return () => window.removeEventListener('heard:export', onExport);
+  }, [id]);
 
   const llmKey = useStore((s) => s.settings.llm.key);
   const [artifacts, setArtifacts] = useState<StarterArtifacts | null>(null);
@@ -1104,6 +1117,17 @@ export default function Interview({ id }: { id: string }) {
       <audio ref={attachAudio} data-testid="audio" preload="metadata" />
 
       <span className="sr-only" data-testid="heard-count">{t('unit.heardCount', { n: heardCount })}</span>
+
+      {exportOpen ? (
+        <ExportSheet
+          interview={interview}
+          notes={notes}
+          transcript={transcript}
+          artifacts={artifacts}
+          onClose={() => setExportOpen(false)}
+          onCopied={(m) => setNotice(m)}
+        />
+      ) : null}
     </main>
   );
 }

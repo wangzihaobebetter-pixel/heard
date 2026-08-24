@@ -464,10 +464,11 @@ async function main() {
   await scenario(async (page, errors) => {
     await openScreen(page, base, '#/');
     await page.waitForSelector('[data-testid="library-list"]');
+    // v3: first run seeds the starter library, not the NASA sample — the sample
+    // remains the offline fallback (src/content/load.ts). Provenance tags took
+    // the lede's job on the card.
     const tag = await textOf(page, '.librarycard__tag');
-    eq('the sample card carries the NASA tag verbatim', tag, t('unit.sample'));
-    const lede = await textOf(page, '.librarycard__lede');
-    eq('the first-run lede is on the sample card', lede, t('library.lede'));
+    eq('the first card carries the starter provenance tag verbatim', tag, t('library.tagStarter'));
 
     // DoD 11 — no provider or model name may appear outside Settings.
     const body = await page.$eval('[data-screen="library"]', (el) => el.textContent ?? '');

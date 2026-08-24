@@ -428,3 +428,26 @@ registerStrings('settings', {
     'contentCredits': '起步内容库来源',
   },
 });
+
+/* ----------------------------------------------------- v3 B7: export suite */
+
+registerStrings('exportSheet', {
+  en: {
+    'formats': 'Download as',
+    'htmlShare': 'HTML (share)',
+    'audio': 'Audio file',
+    'withTranscript': 'Include full transcript',
+    'summaryOnly': 'Summary only (no transcript)',
+    'summaryOnlyWhy': 'For sharing: the document, not the tape.',
+    'saved': 'Saved.',
+  },
+  'zh-CN': {
+    'formats': '下载为',
+    'htmlShare': 'HTML（分享）',
+    'audio': '音频原件',
+    'withTranscript': '包含全文转写',
+    'summaryOnly': '仅摘要（不含转写）',
+    'summaryOnlyWhy': '用于分享：给文档，不给磁带。',
+    'saved': '已保存。',
+  },
+});
