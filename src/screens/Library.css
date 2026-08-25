@@ -1,108 +1,184 @@
-/* Library — WP3 (DESIGN §4.1, §7).
+/* Proof Canvas: the library is a return surface, not a dashboard. */
 
-   A working document, not a gallery: hairline-bordered cards on paper, one
-   accent nowhere except the progress hairline of a recording still being heard
-   (which is, literally, "the thing that is playing"). */
+.library {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--space-5), 4vw, var(--space-8));
+  max-width: 1120px;
+  padding-top: clamp(var(--space-5), 6vw, var(--space-8));
+}
 
-.library { display: flex; flex-direction: column; gap: var(--space-4); }
+.library__masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
 
-.library__bring { margin-bottom: var(--space-2); }
-
-/* ------------------------------------------------------------------- list */
-
-.library__list {
-  list-style: none;
+.library__heading { max-width: 650px; }
+.library__eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--anchor);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.library .screen__title {
   margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  font-size: clamp(2.75rem, 6vw, 5.2rem);
+  line-height: .94;
+  letter-spacing: -.045em;
+}
+.library__intro {
+  max-width: 48ch;
+  margin: var(--space-3) 0 0;
+  font-size: var(--size-body);
 }
 
-.librarycard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  transition: border-color var(--dur-state) var(--ease-move);
+.library__actions { display: flex; gap: var(--space-2); flex: 0 0 auto; }
+.library__actions .button { min-height: 48px; }
+
+/* ----------------------------------------------------------- proof object */
+
+.proofcard {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, .75fr);
+  min-height: 310px;
+  overflow: hidden;
+  border: 1px solid var(--hairline-2);
+  border-radius: calc(var(--radius-card) * 1.7);
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet);
 }
 
-.librarycard:hover { border-color: var(--ink-3); }
-
-.librarycard__title {
+.proofcard__copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(var(--space-5), 6vw, var(--space-8));
+}
+.proofcard__kicker { margin: 0 0 var(--space-3); color: var(--anchor); letter-spacing: .06em; text-transform: uppercase; }
+.proofcard__claim {
+  max-width: 28ch;
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--size-title);
-  line-height: var(--lh-title);
-  font-weight: var(--weight-medium);
-  /* One line, ellipsised — a long title must not push the status line around. */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: clamp(1.65rem, 3vw, 2.65rem);
+  line-height: 1.08;
+  letter-spacing: -.025em;
 }
-
-.librarycard__meta {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
+.proofcard__quote {
+  max-width: 58ch;
+  margin: var(--space-4) 0 0;
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--anchor);
   color: var(--ink-2);
+  font-size: var(--size-secondary);
+  line-height: 1.55;
 }
+.proofcard__actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-5); }
+.proofcard__receipt {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--anchor) 48%, var(--hairline));
+  border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--anchor) 9%, var(--surface));
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+  transition: transform var(--dur-state) var(--ease-move), background var(--dur-state) var(--ease-move);
+}
+.proofcard__receipt:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--anchor) 15%, var(--surface)); }
+.proofcard__time { color: var(--anchor); }
 
+.proofcard__source {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 0;
+  padding: var(--space-5);
+  background: var(--inverse-bg);
+  color: var(--inverse-ink);
+}
+.proofcard__thread {
+  position: absolute;
+  inset: var(--space-5) auto auto 0;
+  width: 42%;
+  height: 2px;
+  background: var(--anchor);
+}
+.proofcard__thread::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--anchor);
+}
+.proofcard__wave { width: 100%; height: 82px; margin-bottom: auto; color: var(--inverse-ink); opacity: .72; }
+.proofcard__source-title { margin: var(--space-5) 0 var(--space-1); font-family: var(--font-display); font-size: var(--size-title); line-height: 1.1; }
+.proofcard__source-meta { margin: 0; color: var(--inverse-muted); }
+
+/* ----------------------------------------------------------- collections */
+
+.library__collection { display: flex; flex-direction: column; gap: var(--space-3); }
+.library__sectionhead { display: flex; align-items: end; justify-content: space-between; gap: var(--space-4); }
+.library__sectionhead p { margin: 0; max-width: 34ch; text-align: right; }
+.library__sectiontitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2.15rem);
+  line-height: 1.1;
+  font-weight: var(--weight-medium);
+}
+.library__grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+}
+.library__grid--starters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.librarycard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-color: var(--hairline);
+  transition: transform var(--dur-state) var(--ease-move), border-color var(--dur-state) var(--ease-move);
+}
+.librarycard:hover { transform: translateY(-2px); border-color: var(--ink-3); }
+.librarycard--starter { min-height: 244px; background: var(--surface); }
+.librarycard__title {
+  display: -webkit-box;
+  min-height: 2.3em;
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: var(--size-title);
+  line-height: 1.14;
+  font-weight: var(--weight-medium);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.librarycard__meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); margin: 0; color: var(--ink-2); }
 .librarycard__date { font-variant-numeric: tabular-nums; }
 .librarycard__dot { color: var(--ink-3); }
-
-.librarycard__status { margin: 0; color: var(--ink-2); }
-
-/* ✓ heard is ink, never green (§7). */
+.librarycard__status { margin: auto 0 0; color: var(--ink-2); }
 .librarycard__check { color: var(--heard); }
-
-.librarycard__wave {
-  display: block;
-  width: 100%;
-  height: 34px;
-  margin: var(--space-1) 0;
-}
-
-/* --------------------------------------------------- still being heard §4.1
-
-   "a thin progress hairline and `Heard 41 of 92 min`". Scaled with a transform
-   so the fill animates on the compositor and a 0-length fill is still 1 px of
-   rule rather than a collapsed box.                                          */
-
-.librarycard__hairline {
-  display: block;
-  height: 2px;
-  margin: var(--space-2) 0 var(--space-1);
-  background: var(--hairline);
-  border-radius: 1px;
-  overflow: hidden;
-}
-
-.librarycard__hairline-fill {
-  display: block;
-  height: 100%;
-  width: 100%;
-  background: var(--anchor-grad);
-  transform-origin: left center;
-  transition: transform var(--dur-scroll) var(--ease-move);
-}
-
-/* --------------------------------------------------------------- sample tag */
-
-.librarycard__tag {
-  align-self: flex-start;
-  margin-top: var(--space-2);
-  padding: 2px var(--space-2);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-chip);
-  background: var(--surface-2);
-  color: var(--ink-2);
-}
-
-.librarycard__lede {
-  margin: var(--space-2) 0 0;
-  color: var(--ink-3);
-}
+.librarycard__wave { display: block; width: 100%; height: 44px; margin: var(--space-2) 0; }
+.librarycard__hairline { display: block; height: 2px; margin: auto 0 var(--space-1); overflow: hidden; border-radius: 1px; background: var(--hairline); }
+.librarycard__hairline-fill { display: block; width: 100%; height: 100%; background: var(--anchor-grad); transform-origin: left center; transition: transform var(--dur-scroll) var(--ease-move); }
+.librarycard__tag { align-self: flex-start; margin-top: var(--space-2); padding: 3px var(--space-2); border: 1px solid var(--hairline); border-radius: var(--radius-chip); background: var(--surface-2); color: var(--ink-2); }
+.librarycard__lede { margin: var(--space-2) 0 0; color: var(--ink-3); }
 
 /* ------------------------------------------------------------ empty state */
 
@@ -130,23 +206,11 @@
   margin-top: var(--space-3);
 }
 
-@media (min-width: 960px) {
-  .library__bring { align-self: flex-start; width: auto; min-width: 260px; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .librarycard, .librarycard__hairline-fill { transition: none; }
+  .proofcard__receipt, .librarycard, .librarycard__hairline-fill { transition: none; }
 }
 
 /* --------------------------------------------------- v3 B2: record + bring */
-
-.library__actions {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
-}
-.library__record { flex: 1; }
-.library__bring { flex: 1; }
 
 .library__recovered-actions {
   display: flex;
@@ -156,11 +220,8 @@
 
 /* ---------------------------------------------- v3 B6: home states + search */
 
-.library__thesis { margin: 0; max-width: 44ch; }
-
-.library__sectionlabel { color: var(--ink-3); margin: var(--space-2) 0 0; }
-
 .libsearch { display: flex; flex-direction: column; gap: var(--space-2); }
+.libsearch .input { min-height: 48px; padding-left: var(--space-4); border-radius: var(--radius-chip); background: var(--surface); }
 
 .libsearch__results {
   list-style: none;
@@ -207,3 +268,54 @@
 }
 .library__trash-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .library__trash-when { white-space: nowrap; }
+
+@media (max-width: 959px) {
+  .library { gap: var(--space-6); padding-top: var(--space-4); }
+  .library__masthead { align-items: stretch; flex-direction: column; gap: var(--space-4); }
+  .library .screen__title { font-size: clamp(2.8rem, 16vw, 4.15rem); }
+  .library__actions { width: 100%; }
+  .library__actions .button { flex: 1; }
+  .proofcard { grid-template-columns: 1fr; min-height: 0; border-radius: calc(var(--radius-card) * 1.4); }
+  .proofcard__copy { padding: var(--space-4); }
+  .proofcard__claim {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: clamp(1.65rem, 8vw, 2.2rem);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+  .proofcard__quote {
+    display: -webkit-box;
+    overflow: hidden;
+    margin-top: var(--space-3);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .proofcard__actions { align-items: stretch; flex-direction: column; }
+  .proofcard__receipt { justify-content: center; width: 100%; }
+  .proofcard__actions .button { display: none; }
+  .proofcard__source { min-height: 120px; padding: var(--space-3); }
+  .proofcard__thread { inset: var(--space-3) auto auto 0; }
+  .proofcard__wave { height: 42px; margin: 0 0 var(--space-2); }
+  .proofcard__source-title { overflow: hidden; margin: 0; font-size: var(--size-secondary); text-overflow: ellipsis; white-space: nowrap; }
+  .proofcard__source-meta { font-size: var(--size-micro); }
+  .library__sectionhead { align-items: flex-start; flex-direction: column; gap: var(--space-1); }
+  .library__sectionhead p { text-align: left; }
+  .library__grid--own { grid-template-columns: 1fr; }
+  .library__grid--starters {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(78vw, 300px);
+    grid-template-columns: none;
+    overflow-x: auto;
+    margin-inline: calc(var(--space-4) * -1);
+    padding: 0 var(--space-4) var(--space-2);
+    scroll-padding-inline: var(--space-4);
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .library__grid--starters::-webkit-scrollbar { display: none; }
+  .library__grid--starters > li { scroll-snap-align: start; }
+  .librarycard { min-height: 216px; }
+  .library__trash-row { align-items: stretch; flex-direction: column; }
+  .library__trash-when { white-space: normal; }
+}

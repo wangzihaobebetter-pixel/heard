@@ -37,6 +37,12 @@ for (const icon of manifest.icons) {
 if (!manifest.icons.some((i) => i.purpose === 'maskable')) problems.push('no maskable icon declared');
 if (manifest.display !== 'standalone') problems.push('manifest is not standalone');
 if (manifest.start_url !== './' || manifest.scope !== './') problems.push('manifest paths are not GitHub Pages-relative');
+if (/everything stays/i.test(manifest.description ?? '')) {
+  problems.push('manifest makes a false all-local claim');
+}
+if (!/providers? you connect/i.test(manifest.description ?? '')) {
+  problems.push('manifest does not name the connected-provider boundary');
+}
 if (!existsSync(join(PUBLIC, 'sw.js'))) problems.push('missing sw.js');
 
 const swRaw = readFileSync(join(PUBLIC, 'sw.js'), 'utf8');

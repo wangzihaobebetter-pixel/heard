@@ -26,7 +26,7 @@
  *     the quote, so a second copy would be noise).
  */
 import type { Interview, Note, NoteKind } from '../types';
-import { formatDuration, formatTimecode } from '../lib/time';
+import { formatAnchorLocation, formatDuration } from '../lib/time';
 import { translate } from '../i18n';
 
 /** `2026-08-18` — the same date shape the Interview context strip uses (§4.2). */
@@ -78,7 +78,7 @@ export function buildQuoteSheet({ interview, notes, t = translate }: QuoteSheetI
       // rendered in quotation marks the way it would be pasted into copy.
       const body = section.kind === 'point' ? note.text : `"${note.text}"`;
       const tail = note.heard ? '' : ` ${t('exportSheet.notChecked')}`;
-      lines.push(`- [${formatTimecode(note.anchor.s)}] ${mark} ${body}${tail}`);
+      lines.push(`- [${formatAnchorLocation(note.anchor)}] ${mark} ${body}${tail}`);
 
       if (section.kind === 'point' && note.quote) {
         // Ellipses on both ends: the quote is an excerpt of continuous speech,

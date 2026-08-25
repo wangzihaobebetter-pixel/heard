@@ -27,6 +27,8 @@ export interface Route {
 
 interface Pattern { name: RouteName; segments: string[] }
 
+const MAX_SEEK_SEC = 7 * 24 * 60 * 60;
+
 const PATTERNS: Pattern[] = [
   { name: 'library',   segments: [] },
   { name: 'interview', segments: ['i', ':id'] },
@@ -36,7 +38,9 @@ const PATTERNS: Pattern[] = [
 ];
 
 export function parseHash(hash: string): Route {
-  const clean = (hash || '').replace(/^#/, '').replace(/^\//, '').split('?')[0];
+  const withoutHash = (hash || '').replace(/^#/, '').replace(/^\//, '');
+  const [path, query = ''] = withoutHash.split('?', 2);
+  const clean = path;
   const parts = clean ? clean.split('/').filter(Boolean) : [];
 
   for (const pattern of PATTERNS) {
@@ -54,17 +58,34 @@ export function parseHash(hash: string): Route {
         } catch { ok = false; break; }
       } else if (seg !== parts[i]) { ok = false; break; }
     }
-    if (ok) return { name: pattern.name, params, hash };
+    if (ok) {
+      if (pattern.name === 'interview' && query) {
+        const rawTime = new URLSearchParams(query).get('t');
+        const time = rawTime == null ? NaN : Number(rawTime);
+        if (Number.isFinite(time) && time >= 0 && time <= MAX_SEEK_SEC) params.t = String(time);
+      }
+      return { name: pattern.name, params, hash };
+    }
   }
   return { name: 'notfound', params: {}, hash };
 }
 
-export function href(name: RouteName, params: Record<string, string> = {}): string {
+export function href(
+  name: RouteName,
+  params: Record<string, string> = {},
+  query: { t?: string | number } = {},
+): string {
   const pattern = PATTERNS.find((p) => p.name === name);
   if (!pattern) return '#/';
   const path = pattern.segments
     .map((s) => (s.startsWith(':') ? encodeURIComponent(params[s.slice(1)] ?? '') : s))
     .join('/');
+  if (name === 'interview' && query.t != null) {
+    const time = Number(query.t);
+    if (Number.isFinite(time) && time >= 0 && time <= MAX_SEEK_SEC) {
+      return `#/${path}?t=${encodeURIComponent(String(time))}`;
+    }
+  }
   return `#/${path}`;
 }
 

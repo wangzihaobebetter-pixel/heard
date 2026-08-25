@@ -24,6 +24,7 @@ eq(parseHash('#/settings').name, 'settings', '#/settings');
 eq(parseHash('#/i/sample').name, 'interview', '#/i/sample');
 eq(parseHash('#/i/sample').params.id, 'sample', 'interview id');
 eq(parseHash('#/i/sample?x=1').name, 'interview', 'query string ignored');
+eq(parseHash('#/i/sample?x=1').params.x, undefined, 'unknown query key is not exposed');
 
 /* Anything else is notfound, and App renders the Library for it. */
 eq(parseHash('#/nope').name, 'notfound', 'unknown route');
@@ -35,6 +36,13 @@ eq(parseHash('#/i/%E0%A4%A').name, 'notfound', 'truncated UTF-8 escape');
 /* Ids round-trip through href/parseHash, including awkward ones. */
 const weird = 'iv_a/b+c=';
 eq(parseHash(href('interview', { id: weird })).params.id, weird, 'id round-trip');
+
+/* A proof receipt survives a reload, but only the bounded `t` query is accepted. */
+const timed = href('interview', { id: weird }, { t: 12.5 });
+eq(timed, '#/i/iv_a%2Fb%2Bc%3D?t=12.5', 'time deep-link encoding');
+eq(parseHash(timed).params.t, '12.5', 'time deep-link round-trip');
+eq(parseHash('#/i/sample?t=-1').params.t, undefined, 'negative time rejected');
+eq(parseHash('#/i/sample?t=999999999').params.t, undefined, 'unbounded time rejected');
 
 rmSync('.tmp-router', { recursive: true, force: true });
 

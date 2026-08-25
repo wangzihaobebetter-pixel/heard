@@ -163,7 +163,7 @@ export async function generateArtifacts(
       text: asStr(parsed.summary?.text),
       // Nullable per marker: a failed citation keeps its [n] as plain text
       // instead of renumbering every other marker.
-      citations: asArr(parsed.summary?.citations).map((q) => resolve(asStr(q))) as Citation[],
+      citations: asArr(parsed.summary?.citations).map((q) => resolve(asStr(q))),
     },
     chapters: asArr(parsed.chapters).flatMap((c) => {
       const o = (c ?? {}) as Record<string, unknown>;
@@ -182,6 +182,21 @@ export async function generateArtifacts(
     }),
   };
 
+  const summaryText = artifacts.summary.text.trim();
+  if (summaryText) {
+    const markerMatches = [...summaryText.matchAll(/\[(\d+)\]/g)];
+    const citations = artifacts.summary.citations;
+    const everyMarkerHasProof = markerMatches.length > 0
+      && citations.length > 0
+      && citations.every(Boolean)
+      && markerMatches.every((match) => {
+        const raw = match[1];
+        const n = Number(raw);
+        return raw === String(n)
+          && Number.isInteger(n) && n >= 1 && n <= citations.length && citations[n - 1];
+      });
+    if (!everyMarkerHasProof) return { ok: false, reason: 'failed' };
+  }
   if (!artifacts.summary.text && !artifacts.chapters.length) return { ok: false, reason: 'failed' };
 
   memory.set(interviewId, artifacts);

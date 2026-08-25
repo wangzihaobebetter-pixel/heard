@@ -2,7 +2,7 @@
  * WP1 acceptance — the audio and transcription engine.
  *
  * Authority: REVIEW-2026-08-23.md §6 WP1. It asks for exactly this: render a
- * > 25 MB WAV from the pinned NASA episode with ffmpeg, drive `dev/engine.html`
+ * > 25 MB WAV from the shipped Yale lecture with ffmpeg, drive `dev/engine.html`
  * headless, and assert that word times are strictly monotonic across every
  * chunk boundary, that the largest inter-word gap at any boundary is under
  * 1.5 s, that every offset lands inside its own chunk, and that `playSpan`
@@ -16,8 +16,7 @@
  * this file agreeing with itself.
  *
  * The mock is not a stub returning invented segments. It is backed by a real
- * word-level transcription of the real episode (`full-whisper.json`, whisper
- * large-v3-turbo with DTW alignment, 12 317 tokens over 3 898.9 s), and it
+ * word-level transcription shipped with the real 29-minute Yale lecture, and it
  * refuses to be told where a chunk sits. For every chunk it receives it:
  *
  *   1. decodes the uploaded audio to 16 kHz mono PCM (via ffmpeg, so the format
@@ -44,18 +43,19 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, statSync } from 
 import { promisify } from 'node:util';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
+import { findChrome } from './scripts/find-chrome.mjs';
 
 const execFileAsync = promisify(execFile);
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname));
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 const TMP = path.join(ROOT, '.tmp-engine');
-const BUILD = path.resolve(ROOT, '..', 'heard-build', 'sample');
+const SOURCE_MP3 = path.join(ROOT, 'public', 'starter', 'yale-psych110.mp3');
+const SOURCE_WAV16 = path.join(TMP, 'source-16k.wav');
+const GROUND_TRUTH = path.join(ROOT, 'public', 'starter', 'yale-psych110.json');
+const SOURCE_DURATION = 1765.49;
 
-const SOURCE_MP3 = path.join(BUILD, 'white-flight.mp3');
-const SOURCE_WAV16 = path.join(BUILD, 'full-16k.wav');
-const GROUND_TRUTH = path.join(BUILD, 'full-whisper.json');
-
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const CHROME = findChrome();
 /**
  * Preferred ports, but never assumed. Sibling packages run their own dev server
  * in this repo, and an earlier run of this script once left one behind: vite
@@ -113,8 +113,7 @@ function preflight() {
     ['ffmpeg', spawnSync('ffmpeg', ['-version']).status === 0],
     ['Chrome', existsSync(CHROME)],
     ['source mp3', existsSync(SOURCE_MP3)],
-    ['source 16k wav', existsSync(SOURCE_WAV16)],
-    ['ground-truth whisper json', existsSync(GROUND_TRUTH)],
+    ['shipped word-level transcript', existsSync(GROUND_TRUTH)],
     ['puppeteer-core', existsSync(path.join(ROOT, 'node_modules', 'puppeteer-core'))],
   ];
   let ok = true;
@@ -138,9 +137,12 @@ async function ffmpeg(args) {
 async function renderAssets() {
   section('Rendering test audio with ffmpeg');
 
-  // Case A — the whole episode, already 16 kHz mono. 119 MB, well over the
-  // 25 MB direct ceiling, and long enough for seven chunks and six boundaries.
+  // Case A — the whole lecture rendered to 16 kHz mono PCM. About 56 MB, well
+  // over the 25 MB direct ceiling and long enough to cross chunk boundaries.
   const caseA = SOURCE_WAV16;
+  if (!existsSync(caseA)) {
+    await ffmpeg(['-i', SOURCE_MP3, '-vn', '-map', '0:a:0', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', caseA]);
+  }
 
   // Case B — 22 minutes at 44.1 kHz, so the decoder must genuinely resample and
   // the fast path in decode.ts is bypassed. Still > 25 MB, still multi-chunk.
@@ -162,7 +164,7 @@ async function renderAssets() {
 
   // Probe every asset before any case believes it. A truncated render is the
   // cheapest way to get a green run that proved nothing.
-  const expect = { 'case-a.wav': 3905, 'case-b.wav': 1320, 'direct.mp3': 720 };
+  const expect = { 'case-a.wav': SOURCE_DURATION, 'case-b.wav': 1320, 'direct.mp3': 720 };
   for (const [label, file] of [['case-a.wav', caseA], ['case-b.wav', caseB], ['direct.mp3', direct]]) {
     const { stdout } = await execFileAsync('ffprobe',
       ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', file]);
@@ -186,6 +188,12 @@ async function renderAssets() {
  */
 function loadGroundTruth() {
   const raw = JSON.parse(readFileSync(GROUND_TRUTH, 'utf8'));
+  if (Array.isArray(raw.transcript?.words)) {
+    return raw.transcript.words
+      .map(({ t, s, e }) => ({ t: String(t ?? ''), s: Number(s), e: Number(e) }))
+      .filter((word) => word.t.trim() && Number.isFinite(word.s) && Number.isFinite(word.e))
+      .sort((a, b) => a.s - b.s);
+  }
   const words = [];
   for (const seg of raw.transcription ?? []) {
     for (const tok of seg.tokens ?? []) {
@@ -545,9 +553,9 @@ async function main() {
       lang: 'en',
     });
 
-    /* ---------------------------------------------- case A: 16 k, 7 chunks */
+    /* ----------------------------------------- case A: 16 k, multiple chunks */
 
-    section('Case A — >25 MB chunked path (119 MB, 16 kHz mono, whole episode)');
+    section('Case A — >25 MB chunked path (16 kHz mono, whole lecture)');
     await fetch(`http://127.0.0.1:${ASSET_PORT}/debug/reset`);
     const a = await page.evaluate((c) => window.engine.runChunked(c), cfg('case-a.wav'));
     const aObserved = await (await fetch(`http://127.0.0.1:${ASSET_PORT}/debug/observed`)).json();

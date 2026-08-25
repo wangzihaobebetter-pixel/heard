@@ -17,7 +17,7 @@
 import type { Interview, Note, Transcript, Word } from '../types';
 import type { StarterArtifacts } from '../content/schema';
 import { buildParagraphs } from '../components/TranscriptParagraph';
-import { formatDuration, formatTimecode } from '../lib/time';
+import { formatAnchorLocation, formatDuration, formatTimecode } from '../lib/time';
 import { formatSheetDate } from './quotesheet';
 
 export interface ExportInput {
@@ -50,9 +50,10 @@ export function renderMarkdown(input: ExportInput, opts: { transcript?: boolean 
     out.push('## Summary', '');
     // [n] markers stay in the text; the citation list beneath keeps their receipts.
     out.push(artifacts.summary.text, '');
-    const cites = artifacts.summary.citations.filter(Boolean);
-    if (cites.length) {
-      cites.forEach((c, i) => { if (c) out.push(`[${i + 1}]: ${formatTimecode(c.s)} "${c.quote}"`); });
+    if (artifacts.summary.citations.some(Boolean)) {
+      artifacts.summary.citations.forEach((c, i) => {
+        if (c) out.push(`[${i + 1}]: ${formatTimecode(c.s)} "${c.quote}"`);
+      });
       out.push('');
     }
   }
@@ -76,7 +77,7 @@ export function renderMarkdown(input: ExportInput, opts: { transcript?: boolean 
     out.push('## Notes', '');
     for (const n of notes) {
       const mark = n.heard ? '✓' : ' ';
-      out.push(`- [${formatTimecode(n.anchor.s)}] ${mark} ${n.text || n.quote || ''}`);
+      out.push(`- [${formatAnchorLocation(n.anchor)}] ${mark} ${n.text || n.quote || ''}`);
       if (n.kind === 'point' && n.quote) out.push(`      "…${n.quote}…"`);
     }
     out.push('');

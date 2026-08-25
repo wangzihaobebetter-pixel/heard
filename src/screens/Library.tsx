@@ -232,8 +232,6 @@ export default function Library() {
   const interviews = useStore(selectInterviewList);
   const notes = useStore((s) => s.notes);
   const transcripts = useStore((s) => s.transcripts);
-  const theme = useStore((s) => s.settings.ui.theme);
-  const setSettings = useStore((s) => s.setSettings);
   const setUi = useStore((s) => s.setUi);
 
   const [storageFailed, setStorageFailed] = useState(false);
@@ -254,18 +252,19 @@ export default function Library() {
   /* v3 B6, the 3-state Home (§4.7): "own" is what the person made. */
   const own = useMemo(() => shown.filter((i) => !i.starter && !i.sample), [shown]);
   const rest = useMemo(() => shown.filter((i) => i.starter || i.sample), [shown]);
-  const searchOnTop = own.length >= 3;
   const sample = shown.find((i) => i.id === SAMPLE_ID);
   // §4.1: the lede is the invitation, so it retires once the person has taken it.
   const sampleUntouched = !!sample && !(notes[SAMPLE_ID] ?? []).some((n) => n.heard);
+  const proof = useMemo(() => {
+    for (const interview of [...own, ...rest]) {
+      const note = (notes[interview.id] ?? []).find((candidate) => (
+        candidate.anchor.quality !== 'unpinned' && candidate.anchor.e > candidate.anchor.s
+      ));
+      if (note) return { interview, note };
+    }
+    return null;
+  }, [notes, own, rest]);
 
-  /** "Toggle" means the two you can see, so it flips against what is on screen. */
-  function toggleTheme() {
-    const resolved = theme === 'system'
-      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'ink' : 'paper')
-      : theme;
-    setSettings({ ui: { theme: resolved === 'ink' ? 'paper' : 'ink' } });
-  }
 
   function bringSampleBack() {
     setUi({ sampleDismissed: false });
@@ -274,38 +273,22 @@ export default function Library() {
 
   return (
     <>
-      <header className="topbar">
-        <a className="topbar__name" href={href('library')}>{t('app.name')}</a>
-        <span className="topbar__spacer" />
-        <button
-          type="button"
-          className="iconbutton"
-          aria-label={t('settings.theme')}
-          data-testid="theme-toggle"
-          onClick={toggleTheme}
-        >
-          ◐
-        </button>
-        <a className="iconbutton" href={href('settings')} aria-label={t('settings.title')} data-testid="settings-link">
-          ⚙
-        </a>
-      </header>
-
       <main className="screen library" data-screen="library">
-        <h1 className="screen__title">{t('library.title')}</h1>
-
-        {searchOnTop ? <GlobalSearch /> : null}
-
-        <div className="library__actions">
-          <a className="button button--primary library__record" href={href('record')} data-testid="library-record">
-            {t('library.recordCta')}
-          </a>
-          <a className="button button--secondary library__bring" href={href('bring')}>
-            {t('action.bringRecording')}
-          </a>
-        </div>
-
-        {!searchOnTop && shown.length > 0 ? <GlobalSearch /> : null}
+        <header className="library__masthead">
+          <div className="library__heading">
+            <p className="library__eyebrow micro">{t('library.eyebrow')}</p>
+            <h1 className="screen__title">{t('library.title')}</h1>
+            <p className="library__intro secondary">{t('library.intro')}</p>
+          </div>
+          <div className="library__actions">
+            <a className="button button--primary library__record" href={href('record')} data-testid="library-record">
+              {t('library.recordCta')}
+            </a>
+            <a className="button button--secondary library__bring" href={href('bring')}>
+              {t('action.bringRecording')}
+            </a>
+          </div>
+        </header>
 
         <RecoveryCards />
 
@@ -338,16 +321,14 @@ export default function Library() {
 
         {!failed && shown.length > 0 ? (
           <>
-            {own.length === 0 ? (
-              /* State 0 (§4.7): nothing recorded yet — the thesis, the verb,
-                 and a library that is already interesting. */
-              <p className="library__thesis secondary" data-testid="library-thesis">{t('library.thesis')}</p>
-            ) : null}
+            {proof ? <ProofCard interview={proof.interview} note={proof.note} /> : null}
+
+            <GlobalSearch />
 
             {own.length > 0 ? (
-              <>
-                <h2 className="micro library__sectionlabel">{t('library.yourRecordings')}</h2>
-                <ul className="library__list" data-testid="library-list-own">
+              <section className="library__collection" data-testid="library-own-section">
+                <h2 className="library__sectiontitle">{t('library.yourRecordings')}</h2>
+                <ul className="library__grid library__grid--own" data-testid="library-list-own">
                   {own.map((interview) => (
                     <li key={interview.id}>
                       <Card
@@ -359,15 +340,18 @@ export default function Library() {
                     </li>
                   ))}
                 </ul>
-              </>
+              </section>
             ) : null}
 
             {rest.length > 0 ? (
-              <>
-                <h2 className="micro library__sectionlabel">{t('library.starterLibrary')}</h2>
-                <ul className="library__list" data-testid="library-list">
+              <section className="library__collection library__collection--starters" data-testid="library-starter-shelf">
+                <div className="library__sectionhead">
+                  <h2 className="library__sectiontitle">{t('library.starterLibrary')}</h2>
+                  <p className="secondary">{t('library.starterHint')}</p>
+                </div>
+                <ul className="library__grid library__grid--starters" data-testid="library-list">
                   {rest.map((interview) => (
-                    <li key={interview.id}>
+                    <li key={interview.id} data-testid="starter-card">
                       <Card
                         interview={interview}
                         notes={notes[interview.id] ?? []}
@@ -377,7 +361,7 @@ export default function Library() {
                     </li>
                   ))}
                 </ul>
-              </>
+              </section>
             ) : null}
           </>
         ) : null}
@@ -395,6 +379,47 @@ export default function Library() {
 
       <Toast message={toast.message} onDone={toast.clear} />
     </>
+  );
+}
+
+/* ------------------------------------------------------------- proof card */
+
+function ProofCard({ interview, note }: { interview: Interview; note: Note }) {
+  const t = useT();
+  const [peaks, setPeaks] = useState<Float32Array | null>(null);
+  useEffect(() => {
+    let live = true;
+    void getCachedPeaks(interview.id).then((value) => { if (live) setPeaks(value); });
+    return () => { live = false; };
+  }, [interview.id]);
+
+  return (
+    <article className="proofcard" data-testid="library-proof-card">
+      <div className="proofcard__copy">
+        <p className="proofcard__kicker micro">{t('library.proofKicker')}</p>
+        <p className="proofcard__claim">{note.text}</p>
+        {note.quote ? <blockquote className="proofcard__quote">“{note.quote}”</blockquote> : null}
+        <div className="proofcard__actions">
+          <a
+            className="proofcard__receipt"
+            data-testid="library-proof-link"
+            href={href('interview', { id: interview.id }, { t: note.anchor.s })}
+          >
+            <span className="proofcard__time tabular">{formatDuration(note.anchor.s)}</span>
+            <span>{t('library.proofAction')}</span>
+          </a>
+          <a className="button button--quiet" href={href('interview', { id: interview.id })}>
+            {t('library.openRoom')}
+          </a>
+        </div>
+      </div>
+      <div className="proofcard__source" aria-hidden="true">
+        <span className="proofcard__thread" />
+        {peaks ? <Waveform className="proofcard__wave" peaks={peaks} progress={note.anchor.s / Math.max(interview.durationSec, 1)} /> : null}
+        <p className="proofcard__source-title">{interview.title}</p>
+        <p className="proofcard__source-meta tabular">{formatDuration(interview.durationSec)}</p>
+      </div>
+    </article>
   );
 }
 
@@ -418,7 +443,11 @@ function Card({
   const progress = total > 0 ? Math.min(1, done / total) : 0;
 
   return (
-    <a className="card librarycard" href={href('interview', { id: interview.id })} data-interview={interview.id}>
+    <a
+      className={`card librarycard ${interview.starter || interview.sample ? 'librarycard--starter' : 'librarycard--own'}`}
+      href={href('interview', { id: interview.id })}
+      data-interview={interview.id}
+    >
       <h2 className="librarycard__title">
         {interview.favorite ? <span className="librarycard__star" aria-hidden="true">★ </span> : null}
         {interview.title}

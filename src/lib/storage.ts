@@ -63,23 +63,43 @@ export function isStorageDegraded(): boolean {
 /* ------------------------------------------------------------ audio blobs */
 
 export const audioKey = (interviewId: string) => `audio:${interviewId}`;
+const transientAudio = new Map<string, Blob>();
 
 export async function putAudio(interviewId: string, blob: Blob): Promise<void> {
   await set(audioKey(interviewId), blob);
+  transientAudio.delete(interviewId);
+}
+
+/**
+ * Stage an imported recording for intake without overstating retention.
+ * Non-kept imports live only in this page session: enough to cross a route and
+ * finish transcription, never enough to survive a reload.
+ */
+export async function stageImportedAudio(interviewId: string, blob: Blob, keep: boolean): Promise<void> {
+  if (keep) {
+    await putAudio(interviewId, blob);
+    return;
+  }
+  transientAudio.set(interviewId, blob);
 }
 
 /** null means "the recording isn't on this device" — a real, designed state, not an error. */
 export async function getAudio(interviewId: string): Promise<Blob | null> {
   try {
     const blob = await get<Blob>(audioKey(interviewId));
-    return blob ?? null;
+    return blob ?? transientAudio.get(interviewId) ?? null;
   } catch {
-    return null;
+    return transientAudio.get(interviewId) ?? null;
   }
 }
 
 export async function removeAudio(interviewId: string): Promise<void> {
+  transientAudio.delete(interviewId);
   try { await del(audioKey(interviewId)); } catch { /* already gone is fine */ }
+}
+
+export function removeTransientAudio(interviewId: string): void {
+  transientAudio.delete(interviewId);
 }
 
 export async function hasAudio(interviewId: string): Promise<boolean> {

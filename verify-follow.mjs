@@ -18,10 +18,10 @@
 import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { findChrome } from './scripts/find-chrome.mjs';
 
 const BASE = process.env.HEARD_URL ?? 'http://localhost:5178';
-const CHROME = process.env.CHROME_PATH
-  ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const CHROME = findChrome();
 const ID = process.env.HEARD_ID ?? 'yale-psych110';
 const SHOT_DIR = resolve(process.env.HEARD_SHOTS ?? 'shots');
 
@@ -54,6 +54,7 @@ const probe = () => {
 const browser = await puppeteer.launch({
   executablePath: CHROME,
   headless: 'new',
+  protocolTimeout: 240000,
   args: ['--autoplay-policy=no-user-gesture-required', '--no-sandbox'],
 });
 const page = await browser.newPage();
@@ -144,6 +145,28 @@ try {
     () => document.querySelector('[data-testid="audio"]')?.readyState >= 2,
     { timeout: 60000 },
   );
+  const clippedClaims = await page.evaluate(() => [...document.querySelectorAll('[data-testid="note-text"]')]
+    .filter((node) => node.scrollHeight > node.clientHeight + 1)
+    .map((node) => ({ text: node.textContent?.trim() ?? '', visible: node.clientHeight, full: node.scrollHeight })));
+  if (clippedClaims.length === 0) {
+    ok('note claims stay readable on the phone', 'no claim is CSS-clamped');
+  } else {
+    bad('note claims stay readable on the phone', JSON.stringify(clippedClaims.slice(0, 3)));
+  }
+  const receiptStyle = await page.evaluate(() => {
+    const chip = document.querySelector('[data-testid="timecode-chip"][data-quality="word"][data-dashed="false"] .tc');
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--anchor)';
+    document.body.appendChild(probe);
+    const anchor = getComputedStyle(probe).color;
+    probe.remove();
+    return { color: chip ? getComputedStyle(chip).color : '', anchor };
+  });
+  if (receiptStyle.color && receiptStyle.color === receiptStyle.anchor) {
+    ok('a playable exact timecode reads as the same receipt everywhere', receiptStyle.color);
+  } else {
+    bad('a playable exact timecode reads as the same receipt everywhere', JSON.stringify(receiptStyle));
+  }
   await page.click('[data-testid="tab-transcript"]');
   await page.evaluate(() => {
     const el = document.querySelector('[data-testid="audio"]');
@@ -186,6 +209,73 @@ try {
     if (!still && !after) ok('6. the written summary announces itself, once', 'marker shown, cleared on open, still gone after reload');
     else bad('6. the written summary announces itself, once', still ? 'marker survived opening the tab' : 'marker came back after reload');
   }
+
+  /* 7. A proof press is not allowed to update a hidden transcript. On a phone,
+     pressing an AI citation must bring the source words into the visible player
+     sheet immediately — hearing a claim without seeing its receipt is the exact
+     failure this product exists to prevent. */
+  await page.click('[data-testid="tab-ai"]');
+  await page.waitForSelector('.ai__cite', { timeout: 15000 });
+  await page.click('.ai__cite');
+  await sleep(800);
+  const proof = await page.evaluate(() => {
+    const player = document.querySelector('[data-testid="player"]');
+    const para = document.querySelector('[data-testid="player-paragraph"]');
+    const box = para?.getBoundingClientRect();
+    const visible = !!box && box.width > 0 && box.height > 0
+      && box.top < window.innerHeight && box.bottom > 0;
+    return {
+      height: player?.getAttribute('data-height') ?? 'missing',
+      visible,
+      words: para?.textContent?.trim().length ?? 0,
+      tab: document.querySelector('[role="tab"][aria-selected="true"]')?.getAttribute('data-testid') ?? 'unknown',
+    };
+  });
+  if (proof.height === 'mid' && proof.visible && proof.words > 0) {
+    ok('7. a proof press reveals its source words on a phone', `sheet=${proof.height} · ${proof.words} visible characters`);
+  } else {
+    bad('7. a proof press reveals its source words on a phone',
+      `sheet=${proof.height} · visible=${proof.visible} · words=${proof.words} · tab=${proof.tab}`);
+  }
+  await page.screenshot({ path: `${SHOT_DIR}/shot-proof-reveal-mobile.png` });
+
+  /* 8. The progress control is another path into the same clock. Scrubbing
+     while reading Notes or Summary must reveal the source paragraph too; a
+     hidden karaoke cursor is not user-visible synchronization. */
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-testid="tab-ai"]', { timeout: 20000 });
+  await page.waitForFunction(
+    () => document.querySelector('[data-testid="audio"]')?.readyState >= 2,
+    { timeout: 60000 },
+  );
+  await page.click('[data-testid="tab-ai"]');
+  await page.$eval('.player__range', (range) => {
+    const input = range;
+    input.value = String(Number(input.max) * 0.35);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await sleep(800);
+  const scrub = await page.evaluate(() => {
+    const player = document.querySelector('[data-testid="player"]');
+    const para = document.querySelector('[data-testid="player-paragraph"]');
+    const box = para?.getBoundingClientRect();
+    return {
+      height: player?.getAttribute('data-height') ?? 'missing',
+      visible: !!box && box.width > 0 && box.height > 0
+        && box.top < window.innerHeight && box.bottom > 0,
+      words: para?.textContent?.trim().length ?? 0,
+      time: document.querySelector('[data-testid="player-time"]')?.textContent?.trim() ?? 'missing',
+    };
+  });
+  if (scrub.height === 'mid' && scrub.visible && scrub.words > 0) {
+    ok('8. scrubbing reveals the synchronized source words on a phone',
+      `sheet=${scrub.height} · time=${scrub.time} · ${scrub.words} visible characters`);
+  } else {
+    bad('8. scrubbing reveals the synchronized source words on a phone',
+      `sheet=${scrub.height} · visible=${scrub.visible} · words=${scrub.words} · time=${scrub.time}`);
+  }
+  await page.screenshot({ path: `${SHOT_DIR}/shot-scrub-reveal-mobile.png` });
 } finally {
   await browser.close();
 }

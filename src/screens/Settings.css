@@ -1,23 +1,58 @@
-/* Settings — WP3 (DESIGN §4.4, §7). A settings screen that still reads as the
-   same document: section labels in micro type, hairline rules between, no
-   grouped-inset-table look. */
+/* Proof Canvas settings: results first, provider mechanics by disclosure. */
 
-.settings { display: flex; flex-direction: column; gap: var(--space-4); }
+.screen.settings {
+  display: flex;
+  flex-direction: column;
+  max-width: 1120px;
+  gap: var(--space-6);
+  padding-top: clamp(var(--space-5), 6vw, var(--space-8));
+}
+.settings__masthead { max-width: 760px; }
+.settings__eyebrow { margin: 0 0 var(--space-2); color: var(--anchor); letter-spacing: .08em; text-transform: uppercase; }
+.settings .screen__title { margin: 0; font-size: clamp(2.75rem, 6vw, 5rem); line-height: .96; letter-spacing: -.045em; }
+.settings__intro { max-width: 60ch; margin: var(--space-3) 0 0; font-size: var(--size-body); }
+
+.settings__layout { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr); gap: var(--space-4); align-items: start; }
+.settings__group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--hairline);
+  border-radius: calc(var(--radius-card) * 1.55);
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet);
+}
+.settings__group-title { margin: 0 0 var(--space-3); font-family: var(--font-display); font-size: clamp(1.55rem, 3vw, 2.15rem); line-height: 1.1; font-weight: var(--weight-medium); }
 
 .settings__section {
-  padding: var(--space-4) var(--space-4) var(--space-5);
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-card);
-  box-shadow: var(--elev-1);
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--hairline-2);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
-
-.settings__section:last-of-type { border-bottom: 1px solid var(--hairline); }
-
+.settings__section:last-child { border-bottom: 1px solid var(--hairline-2); }
+.settings__connection-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 68px;
+  gap: var(--space-3);
+  cursor: pointer;
+  list-style: none;
+}
+.settings__connection-summary::-webkit-details-marker { display: none; }
+.settings__connection-summary::after { content: '+'; color: var(--anchor); font-size: 1.3rem; font-weight: var(--weight-medium); }
+.settings__connection[open] .settings__connection-summary::after { content: '−'; }
+.settings__connection > :not(summary) { margin-bottom: var(--space-4); }
 .settings__why { margin: 0; color: var(--ink-3); }
-
 .settings__line { margin: 0; font-size: var(--size-body); line-height: var(--lh-body); }
 .settings__line.secondary { color: var(--ink-2); }
+
+.settings__subsection { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) 0; border-top: 1px solid var(--hairline-2); }
+.settings__subsection:last-child { padding-bottom: 0; }
 
 /* ------------------------------------------------------- segmented choices */
 
@@ -32,7 +67,7 @@
 }
 
 .settings__option {
-  min-height: calc(var(--touch-min) - 6px);
+  min-height: var(--touch-min);
   padding: 0 var(--space-4);
   font-size: var(--size-secondary);
   color: var(--ink-2);
@@ -78,7 +113,32 @@
 
 .settings__recording .button { flex: 0 0 auto; }
 
-/* ------------------------------------------------------------------- about */
+/* ----------------------------------------------------------- trust + about */
+
+.settings__privacy {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(var(--space-5), 5vw, var(--space-7));
+  border: 1px solid var(--hairline-2);
+  border-radius: calc(var(--radius-card) * 1.55);
+  background: var(--surface-2);
+}
+.settings__privacy::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--anchor); }
+.settings__privacy-kicker { margin: 0 0 var(--space-3); color: var(--anchor); letter-spacing: .06em; text-transform: uppercase; }
+.settings__privacy h2 { max-width: 20ch; margin: 0 0 var(--space-3); font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.05; letter-spacing: -.025em; font-weight: var(--weight-medium); }
+.settings__privacy .settings__line { max-width: 76ch; }
+.settings__privacy .settings__why { max-width: 72ch; margin-top: var(--space-3); }
+
+.settings__sources { border-top: 1px solid var(--hairline-2); border-bottom: 1px solid var(--hairline-2); }
+.settings__sources-summary { display: flex; align-items: center; justify-content: space-between; min-height: 58px; gap: var(--space-3); cursor: pointer; list-style: none; }
+.settings__sources-summary::-webkit-details-marker { display: none; }
+.settings__sources-summary::after { content: '+'; color: var(--anchor); }
+.settings__sources[open] .settings__sources-summary::after { content: '−'; }
+.settings__credits { display: flex; flex-direction: column; gap: var(--space-3); padding: 0 0 var(--space-4); }
+.settings__credit-list { list-style: none; display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; }
+.settings__credit-list li { padding-top: var(--space-2); border-top: 1px solid var(--hairline); font-size: var(--size-secondary); line-height: 1.5; }
+
+.settings__footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); color: var(--ink-3); }
 
 .settings__link {
   align-self: flex-start;
@@ -93,26 +153,19 @@
 
 .settings__link:hover { color: var(--ink); }
 
-@media (min-width: 960px) {
-  /* `.screen.settings` / `.screen.bring`, not the bare class: WP0's shell.css
-     also sets a max-width on `.screen` and is bundled after this file, so an
-     equal-specificity rule here silently loses. */
-  .screen.settings { max-width: 640px; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .settings__option { transition: none; }
 }
 
-/* ------------------------------------------------ v3 B6: starter credits */
-
-.settings__credits { display: flex; flex-direction: column; gap: var(--space-1); }
-.settings__credit-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+@media (max-width: 959px) {
+  .screen.settings { gap: var(--space-5); padding-top: var(--space-4); }
+  .settings .screen__title { font-size: clamp(2.75rem, 15vw, 4rem); }
+  .settings__layout { grid-template-columns: 1fr; }
+  .settings__group { padding: var(--space-3); border-radius: calc(var(--radius-card) * 1.3); }
+  .settings__connection-summary { min-height: 64px; }
+  .settings__connection-summary > .secondary { overflow: hidden; max-width: 48%; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+  .settings__choice { align-self: stretch; }
+  .settings__option { flex: 1; min-width: 0; padding-inline: var(--space-2); }
+  .settings__privacy { padding: var(--space-5) var(--space-4); border-radius: calc(var(--radius-card) * 1.3); }
+  .settings__footer { align-items: flex-start; flex-direction: column; }
 }
-.settings__credit-list li { line-height: 1.5; font-size: var(--size-secondary); }

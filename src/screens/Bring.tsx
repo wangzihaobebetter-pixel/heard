@@ -24,10 +24,10 @@
  */
 import { useMemo, useRef, useState } from 'react';
 import { useT } from '../i18n';
-import { href, replace } from '../router';
+import { replace } from '../router';
 import { useStore } from '../store';
 import { ACCEPTED_EXT, MAX_DURATION_SEC, STT_PRESETS } from '../store/presets';
-import { putAudio } from '../lib/storage';
+import { stageImportedAudio } from '../lib/storage';
 import { formatBytes, formatDuration } from '../lib/time';
 import { EngineError, planIntake, probeDuration } from '../audio/decode';
 import { testKey } from '../audio/transcribe';
@@ -198,12 +198,9 @@ export default function Bring() {
         },
       });
 
-      if (settings.ui.keepAudio) {
-        // Always awaited: the Interview screen resolves playback from this blob,
-        // and arriving before the write lands is the "recording isn't on this
-        // device" state appearing for a recording that is.
-        await putAudio(interview.id, chosen.file);
-      }
+      // Always stage before navigation. If the user opted out of keeping an
+      // imported copy this is an in-memory hand-off only; intake clears it.
+      await stageImportedAudio(interview.id, chosen.file, settings.ui.keepAudio);
 
       // §4.3: "on press, navigate straight to #/i/:newId … do not sit on this
       // screen." `replace`, not `navigate`, so Back does not come back here.
@@ -215,120 +212,119 @@ export default function Bring() {
 
   return (
     <>
-      <header className="topbar">
-        <a className="topbar__name" href={href('library')}>{t('app.name')}</a>
-        <span className="topbar__spacer" />
-        <a className="iconbutton" href={href('settings')} aria-label={t('settings.title')}>⚙</a>
-      </header>
-
       <main className="screen bring" data-screen="bring">
-        <h1 className="screen__title">{t('bring.title')}</h1>
+        <header className="bring__masthead">
+          <p className="bring__eyebrow micro">{t('bring.eyebrow')}</p>
+          <h1 className="screen__title">{t('bring.title')}</h1>
+          <p className="bring__intro secondary">{t('bring.intro')}</p>
+        </header>
 
-        {!chosen ? (
-          <DropZone onFile={onFile} label={t('bring.choose')} hint={t('bring.dropHint')} disabled={busy} />
-        ) : (
-          <div className="bring__file" data-testid="bring-file">
-            <div className="bring__file-text">
-              <p className="bring__filename">{chosen.file.name}</p>
-              <p className="bring__filemeta secondary">
-                <span>{formatBytes(chosen.file.size)}</span>
-                <span aria-hidden="true"> · </span>
-                <span className="tabular" data-testid="bring-duration">{formatDuration(chosen.durationSec)}</span>
-              </p>
+        <div className="bring__canvas">
+          <section className="bring__value" data-testid="bring-value">
+            <p className="bring__value-kicker micro">{t('bring.promiseKicker')}</p>
+            <h2>{t('bring.promiseTitle')}</h2>
+            <p className="secondary bring__value-body">{t('bring.promiseBody')}</p>
+            <ol className="bring__returns">
+              <li><span className="tabular">01</span>{t('bring.transcriptReturn')}</li>
+              <li><span className="tabular">02</span>{t('bring.notesReturn')}</li>
+            </ol>
+            <div className="bringproof">
+              <span className="bringproof__line" aria-hidden="true" />
+              <span className="bringproof__receipt tabular" data-testid="bring-proof-receipt">06:32</span>
+              <span>{t('bring.proofPreview')}</span>
+              <span className="bringproof__wave" aria-hidden="true" />
             </div>
-            <button type="button" className="button button--quiet bring__change" onClick={clear}>
-              {t('action.chooseAnother')}
-            </button>
-          </div>
-        )}
+          </section>
 
-        {refusal ? (
-          <div className="notice" data-testid="bring-refusal" data-refusal={refusal.kind}>
-            <p className="notice__text">
-              {refusal.kind === 'tooBigMobile' ? t('bring.tooBigMobile', { size: refusal.size }) : null}
-              {refusal.kind === 'tooLong' ? t('bring.tooLong') : null}
-              {refusal.kind === 'unsupported' ? t('bring.unsupported') : null}
-              {refusal.kind === 'keyRefused' ? t('bring.keyRefused', { provider: refusal.provider }) : null}
-              {refusal.kind === 'offline' ? t('bring.offline') : null}
-              {refusal.kind === 'other' ? t('settings.testFail', { status: refusal.status, message: refusal.message }) : null}
-            </p>
-            {refusal.kind === 'tooBigMobile' || refusal.kind === 'tooLong' || refusal.kind === 'unsupported' ? (
-              <button type="button" className="button button--secondary" onClick={clear}>
-                {t('action.chooseAnother')}
-              </button>
+          <section className="bring__task">
+            {!chosen ? (
+              <DropZone onFile={onFile} label={t('bring.choose')} hint={t('bring.dropHint')} disabled={busy} />
+            ) : (
+              <div className="bring__file" data-testid="bring-file">
+                <div className="bring__file-text">
+                  <p className="bring__filename">{chosen.file.name}</p>
+                  <p className="bring__filemeta secondary">
+                    <span>{formatBytes(chosen.file.size)}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span className="tabular" data-testid="bring-duration">{formatDuration(chosen.durationSec)}</span>
+                  </p>
+                </div>
+                <button type="button" className="button button--quiet bring__change" onClick={clear}>
+                  {t('action.chooseAnother')}
+                </button>
+              </div>
+            )}
+
+            {refusal ? (
+              <div className="notice" data-testid="bring-refusal" data-refusal={refusal.kind}>
+                <p className="notice__text">
+                  {refusal.kind === 'tooBigMobile' ? t('bring.tooBigMobile', { size: refusal.size }) : null}
+                  {refusal.kind === 'tooLong' ? t('bring.tooLong') : null}
+                  {refusal.kind === 'unsupported' ? t('bring.unsupported') : null}
+                  {refusal.kind === 'keyRefused' ? t('bring.keyRefused', { provider: refusal.provider }) : null}
+                  {refusal.kind === 'offline' ? t('bring.offline') : null}
+                  {refusal.kind === 'other' ? t('settings.testFail', { status: refusal.status, message: refusal.message }) : null}
+                </p>
+                {refusal.kind === 'tooBigMobile' || refusal.kind === 'tooLong' || refusal.kind === 'unsupported' ? (
+                  <button type="button" className="button button--secondary" onClick={clear}>
+                    {t('action.chooseAnother')}
+                  </button>
+                ) : null}
+              </div>
             ) : null}
-          </div>
-        ) : null}
 
-        {chosen ? (
-          <>
-            <div className="field">
-              <label className="field__label" htmlFor="bring-title">{t('bring.fieldTitle')}</label>
-              <input
-                id="bring-title"
-                className="input"
-                data-testid="bring-title"
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
+            {chosen ? (
+              <div className="bring__options">
+                <div className="field">
+                  <label className="field__label" htmlFor="bring-title">{t('bring.fieldTitle')}</label>
+                  <input id="bring-title" className="input" data-testid="bring-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label className="field__label" htmlFor="bring-lang">{t('bring.fieldLanguage')}</label>
+                  <select id="bring-lang" className="select" data-testid="bring-lang" value={lang} onChange={(e) => setLang(e.target.value)}>
+                    <option value="auto">{t('unit.langAuto')}</option>
+                    <option value="en">{t('unit.langEn')}</option>
+                    <option value="zh">{t('unit.langZh')}</option>
+                    {MORE_LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+                  </select>
+                </div>
+                <Toggle
+                  id="bring-keep"
+                  checked={settings.ui.keepAudio}
+                  onChange={(next) => setSettings({ ui: { keepAudio: next } })}
+                  label={t('bring.keepAudio')}
+                  hint={t('bring.keepAudioWhy')}
+                />
+              </div>
+            ) : null}
 
-            <div className="field">
-              <label className="field__label" htmlFor="bring-lang">{t('bring.fieldLanguage')}</label>
-              <select
-                id="bring-lang"
-                className="select"
-                data-testid="bring-lang"
-                value={lang}
-                onChange={(e) => setLang(e.target.value)}
-              >
-                <option value="auto">{t('unit.langAuto')}</option>
-                <option value="en">{t('unit.langEn')}</option>
-                <option value="zh">{t('unit.langZh')}</option>
-                {MORE_LANGS.map((l) => (
-                  <option key={l.code} value={l.code}>{l.label}</option>
-                ))}
-              </select>
-            </div>
+            {keyMissing && chosen ? (
+              <div className="bring__key" ref={keyBlockRef} data-testid="bring-key">
+                <KeyField
+                  idPrefix="bring-stt"
+                  variant="inline"
+                  keyLabel={t('bring.keyLabel')}
+                  hint={t('bring.keyWhy')}
+                  presets={STT_PRESETS.map((p) => ({ id: p.id, label: p.label }))}
+                  value={settings.stt}
+                  onChange={(patch) => setSettings({ stt: patch })}
+                  onPreset={(preset) => applySttPreset(preset as typeof settings.stt.preset)}
+                />
+              </div>
+            ) : null}
 
-            <Toggle
-              id="bring-keep"
-              checked={settings.ui.keepAudio}
-              onChange={(next) => setSettings({ ui: { keepAudio: next } })}
-              label={t('bring.keepAudio')}
-              hint={t('bring.keepAudioWhy')}
-            />
-          </>
-        ) : null}
-
-        {keyMissing ? (
-          <div className="bring__key" ref={keyBlockRef} data-testid="bring-key">
-            <KeyField
-              idPrefix="bring-stt"
-              variant="inline"
-              keyLabel={t('bring.keyLabel')}
-              hint={t('bring.keyWhy')}
-              presets={STT_PRESETS.map((p) => ({ id: p.id, label: p.label }))}
-              value={settings.stt}
-              onChange={(patch) => setSettings({ stt: patch })}
-              onPreset={(preset) => applySttPreset(preset as typeof settings.stt.preset)}
-            />
-          </div>
-        ) : null}
-
-        <div className="bring__go">
-          <button
-            type="button"
-            className="button button--primary button--wide"
-            data-testid="bring-listen"
-            disabled={!chosen || busy || !settings.stt.key.trim()}
-            onClick={listenOnce}
-          >
-            {t('action.listenOnce')}
-          </button>
-          <p className="bring__estimate secondary">{t('bring.estimate')}</p>
+            {chosen ? (
+              <div className="bring__go">
+                <button type="button" className="button button--primary button--wide" data-testid="bring-listen" disabled={busy || !settings.stt.key.trim()} onClick={listenOnce}>
+                  {t('action.listenOnce')}
+                </button>
+                <p className="bring__estimate secondary">{t('bring.estimate')}</p>
+              </div>
+            ) : null}
+          </section>
         </div>
+
+        <p className="bring__boundary micro">{t('bring.boundary')}</p>
       </main>
     </>
   );

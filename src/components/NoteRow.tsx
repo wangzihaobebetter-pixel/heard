@@ -1,8 +1,8 @@
 /**
  * NoteRow — the unit of the Notes pane (DESIGN §4.2, §5, §6 moment 2).
  *
- * Anatomy, left to right: the timecode chip; the note text (≤ 2 lines at
- * rest); a ✓ heard control. Under the text, in muted small type, the verbatim
+ * Anatomy, left to right: the timecode chip; the complete note claim; a ✓ heard
+ * control. Under the text, in muted small type, the verbatim
  * quote it was pinned to, one line, behind a hairline quote mark.
  *
  * Two behaviours carry the product's ethics rather than its features:
