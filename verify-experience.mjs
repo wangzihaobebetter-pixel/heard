@@ -324,6 +324,16 @@ try {
   });
   await page.goto(`${BASE}/#/i/${waitingId}`, { waitUntil: 'networkidle0' });
   await page.waitForSelector('[data-testid="not-heard-cta"]');
+  await page.waitForSelector('[data-testid="notes-waiting"] a');
+  const waitingConnectHref = await page.$eval(
+    '[data-testid="notes-waiting"] a',
+    (node) => node.getAttribute('href'),
+  );
+  if (waitingConnectHref === '#/settings') {
+    ok('the waiting card connects the missing transcription provider', waitingConnectHref);
+  } else {
+    bad('the waiting card connects the missing transcription provider', waitingConnectHref ?? 'missing href');
+  }
   await page.click('[data-testid="not-heard-cta"]');
   await page.waitForFunction(() => location.hash !== `#/i/${location.hash.split('/').pop()}`);
   const waitingDestination = await page.evaluate(() => location.hash);

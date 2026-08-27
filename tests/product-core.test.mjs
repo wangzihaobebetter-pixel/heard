@@ -21,7 +21,7 @@ Object.defineProperty(globalThis, 'localStorage', {
   },
 });
 
-async function bundle(name, contents) {
+async function bundle(name, contents, plugins = []) {
   const outfile = `${TMP}/${name}.mjs`;
   await build({
     stdin: { contents, resolveDir: process.cwd(), sourcefile: `${name}.ts` },
@@ -31,6 +31,7 @@ async function bundle(name, contents) {
     target: 'node20',
     outfile,
     logLevel: 'silent',
+    plugins,
   });
   return import(`${pathToFileURL(`${process.cwd()}/${outfile}`).href}?v=${Date.now()}-${Math.random()}`);
 }
@@ -41,10 +42,29 @@ const formats = await bundle('formats', `
 const transcription = await bundle('transcription', `
   export { transcribeChunks, transcribeOnce } from './src/audio/transcribe.ts';
 `);
+
+const artifactStorage = new Map();
+globalThis.__heardArtifactStorage = artifactStorage;
+const mockIdbKeyval = {
+  name: 'mock-idb-keyval',
+  setup(builder) {
+    builder.onResolve({ filter: /^idb-keyval$/ }, () => ({ path: 'idb-keyval', namespace: 'mock-idb' }));
+    builder.onLoad({ filter: /.*/, namespace: 'mock-idb' }, () => ({
+      loader: 'js',
+      contents: `
+        const storage = globalThis.__heardArtifactStorage;
+        export const get = async (key) => storage.get(key);
+        export const set = async (key, value) => { storage.set(key, value); };
+        export const del = async (key) => { storage.delete(key); };
+        export const keys = async () => [...storage.keys()];
+      `,
+    }));
+  },
+};
 const artifactsModule = await bundle('artifacts', `
-  export { generateArtifacts } from './src/ai/artifacts.ts';
+  export { generateArtifacts, getArtifacts, removeArtifacts, runPrompt } from './src/ai/artifacts.ts';
   export { useStore } from './src/store/index.ts';
-`);
+`, [mockIdbKeyval]);
 const intakePolicyModule = await bundle('intake-policy', `
   import * as intake from './src/audio/intake.ts';
   export { intake };
@@ -99,6 +119,28 @@ test('an unpinned note export never presents an exact timecode as proven', () =>
 
   assert.match(markdown, /\[unlocated\]/);
   assert.doesNotMatch(markdown, /\[2:03\]/);
+});
+
+test('AI artifact reader ignores legacy unvalidated cache entries', async () => {
+  artifactStorage.clear();
+  artifactStorage.set('artifacts:iv_legacy', {
+    summary: { text: 'Unsupported legacy claim[1].', citations: [null] },
+    chapters: [], concepts: [], flags: [],
+  });
+
+  const result = await artifactsModule.getArtifacts('iv_legacy');
+  assert.equal(result, null);
+});
+
+test('AI artifact removal deletes both legacy and current cache versions', async () => {
+  artifactStorage.clear();
+  artifactStorage.set('artifacts:iv_remove', { legacy: true });
+  artifactStorage.set('artifacts:v2:iv_remove', { current: true });
+
+  await artifactsModule.removeArtifacts('iv_remove');
+
+  assert.equal(artifactStorage.has('artifacts:iv_remove'), false);
+  assert.equal(artifactStorage.has('artifacts:v2:iv_remove'), false);
 });
 
 test('AI artifacts fail closed when the summary has claims but no verified citation', async () => {
@@ -197,6 +239,210 @@ test('AI artifacts reject non-canonical citation marker identity', async () => {
   }), { status: 200, headers: { 'content-type': 'application/json' } });
   try {
     const result = await generateArtifacts('iv_test');
+    assert.deepEqual(result, { ok: false, reason: 'failed' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('AI artifacts reject an uncited claim mixed with a supported claim', async () => {
+  const { useStore, generateArtifacts } = artifactsModule;
+  const words = Array.from({ length: 50 }, (_, i) => ({ i, t: `word${i}`, s: i, e: i + 0.5 }));
+  useStore.setState({
+    settings: {
+      stt: { preset: 'openai', baseUrl: 'https://stt.invalid/v1', key: '', model: 'whisper-1', vocabulary: '' },
+      llm: { preset: 'openai', baseUrl: 'https://llm.invalid/v1', key: '[REDACTED]', model: 'mock' },
+      ui: { lang: 'en', theme: 'paper', keepAudio: true, speed: 1 },
+    },
+    interviews: { iv_test: interview() },
+    transcripts: { iv_test: {
+      lang: 'en', words,
+      segments: [{ s: 0, e: 50, wi: 0, wj: 50 }],
+      heardSec: 50, durationSec: 50,
+      chunks: [{ i: 0, s: 0, e: 50, state: 'done' }],
+    } },
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: JSON.stringify({
+      summary: {
+        text: 'Unsupported first claim. Supported second claim[1].',
+        citations: ['word0 word1 word2 word3 word4 word5'],
+      },
+      chapters: [], concepts: [], flags: [],
+    }) } }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    const result = await generateArtifacts('iv_test');
+    assert.deepEqual(result, { ok: false, reason: 'failed' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('AI artifacts reject an uncited Chinese claim without whitespace after punctuation', async () => {
+  const { useStore, generateArtifacts } = artifactsModule;
+  const words = Array.from({ length: 50 }, (_, i) => ({ i, t: `word${i}`, s: i, e: i + 0.5 }));
+  useStore.setState({
+    settings: {
+      stt: { preset: 'openai', baseUrl: 'https://stt.invalid/v1', key: '', model: 'whisper-1', vocabulary: '' },
+      llm: { preset: 'openai', baseUrl: 'https://llm.invalid/v1', key: '[REDACTED]', model: 'mock' },
+      ui: { lang: 'zh', theme: 'paper', keepAudio: true, speed: 1 },
+    },
+    interviews: { iv_test: interview({ lang: 'zh' }) },
+    transcripts: { iv_test: {
+      lang: 'zh', words,
+      segments: [{ s: 0, e: 50, wi: 0, wj: 50 }],
+      heardSec: 50, durationSec: 50,
+      chunks: [{ i: 0, s: 0, e: 50, state: 'done' }],
+    } },
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: JSON.stringify({
+      summary: {
+        text: '第一条有依据[1]。第二条没有依据。',
+        citations: ['word0 word1 word2 word3 word4 word5'],
+      },
+      chapters: [], concepts: [], flags: [],
+    }) } }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    const result = await generateArtifacts('iv_test');
+    assert.deepEqual(result, { ok: false, reason: 'failed' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('AI artifacts reject an uncited semicolon-delimited claim', async () => {
+  const { useStore, generateArtifacts } = artifactsModule;
+  const words = Array.from({ length: 50 }, (_, i) => ({ i, t: `word${i}`, s: i, e: i + 0.5 }));
+  useStore.setState({
+    settings: {
+      stt: { preset: 'openai', baseUrl: 'https://stt.invalid/v1', key: '', model: 'whisper-1', vocabulary: '' },
+      llm: { preset: 'openai', baseUrl: 'https://llm.invalid/v1', key: '[REDACTED]', model: 'mock' },
+      ui: { lang: 'en', theme: 'paper', keepAudio: true, speed: 1 },
+    },
+    interviews: { iv_test: interview() },
+    transcripts: { iv_test: {
+      lang: 'en', words,
+      segments: [{ s: 0, e: 50, wi: 0, wj: 50 }],
+      heardSec: 50, durationSec: 50,
+      chunks: [{ i: 0, s: 0, e: 50, state: 'done' }],
+    } },
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: JSON.stringify({
+      summary: {
+        text: 'Unsupported first claim; supported second claim[1].',
+        citations: ['word0 word1 word2 word3 word4 word5'],
+      },
+      chapters: [], concepts: [], flags: [],
+    }) } }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    const result = await generateArtifacts('iv_test');
+    assert.deepEqual(result, { ok: false, reason: 'failed' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('AI artifacts reject whitespace-only output with no chapters', async () => {
+  const { useStore, generateArtifacts } = artifactsModule;
+  const words = Array.from({ length: 50 }, (_, i) => ({ i, t: `word${i}`, s: i, e: i + 0.5 }));
+  useStore.setState({
+    settings: {
+      stt: { preset: 'openai', baseUrl: 'https://stt.invalid/v1', key: '', model: 'whisper-1', vocabulary: '' },
+      llm: { preset: 'openai', baseUrl: 'https://llm.invalid/v1', key: '[REDACTED]', model: 'mock' },
+      ui: { lang: 'en', theme: 'paper', keepAudio: true, speed: 1 },
+    },
+    interviews: { iv_test: interview() },
+    transcripts: { iv_test: {
+      lang: 'en', words,
+      segments: [{ s: 0, e: 50, wi: 0, wj: 50 }],
+      heardSec: 50, durationSec: 50,
+      chunks: [{ i: 0, s: 0, e: 50, state: 'done' }],
+    } },
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: JSON.stringify({
+      summary: { text: '   ', citations: [] },
+      chapters: [], concepts: [], flags: [],
+    }) } }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    const result = await generateArtifacts('iv_test');
+    assert.deepEqual(result, { ok: false, reason: 'failed' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('AI artifacts reject an uncited bullet line before a supported line', async () => {
+  const { useStore, generateArtifacts } = artifactsModule;
+  const words = Array.from({ length: 50 }, (_, i) => ({ i, t: `word${i}`, s: i, e: i + 0.5 }));
+  useStore.setState({
+    settings: {
+      stt: { preset: 'openai', baseUrl: 'https://stt.invalid/v1', key: '', model: 'whisper-1', vocabulary: '' },
+      llm: { preset: 'openai', baseUrl: 'https://llm.invalid/v1', key: '[REDACTED]', model: 'mock' },
+      ui: { lang: 'en', theme: 'paper', keepAudio: true, speed: 1 },
+    },
+    interviews: { iv_test: interview() },
+    transcripts: { iv_test: {
+      lang: 'en', words,
+      segments: [{ s: 0, e: 50, wi: 0, wj: 50 }],
+      heardSec: 50, durationSec: 50,
+      chunks: [{ i: 0, s: 0, e: 50, state: 'done' }],
+    } },
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: JSON.stringify({
+      summary: {
+        text: '- Unsupported first claim\n- Supported second claim[1].',
+        citations: ['word0 word1 word2 word3 word4 word5'],
+      },
+      chapters: [], concepts: [], flags: [],
+    }) } }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    const result = await generateArtifacts('iv_test');
+    assert.deepEqual(result, { ok: false, reason: 'failed' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('saved prompt answers fail closed when their citation cannot be verified', async () => {
+  const { useStore, runPrompt } = artifactsModule;
+  const words = Array.from({ length: 50 }, (_, i) => ({ i, t: `word${i}`, s: i, e: i + 0.5 }));
+  useStore.setState({
+    settings: {
+      stt: { preset: 'openai', baseUrl: 'https://stt.invalid/v1', key: '', model: 'whisper-1', vocabulary: '' },
+      llm: { preset: 'openai', baseUrl: 'https://llm.invalid/v1', key: '[REDACTED]', model: 'mock' },
+      ui: { lang: 'en', theme: 'paper', keepAudio: true, speed: 1 },
+    },
+    interviews: { iv_test: interview() },
+    transcripts: { iv_test: {
+      lang: 'en', words,
+      segments: [{ s: 0, e: 50, wi: 0, wj: 50 }],
+      heardSec: 50, durationSec: 50,
+      chunks: [{ i: 0, s: 0, e: 50, state: 'done' }],
+    } },
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: JSON.stringify({
+      answer: 'Unsupported answer[1].',
+      citations: ['words that never occur in the tape'],
+    }) } }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    const result = await runPrompt('iv_test', 'What happened?');
     assert.deepEqual(result, { ok: false, reason: 'failed' });
   } finally {
     globalThis.fetch = originalFetch;

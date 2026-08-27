@@ -811,7 +811,7 @@ export default function Interview({ id, initialSeekSec }: { id: string; initialS
       {waiting ? (
         <div className="iv__pending card-note" data-testid="notes-waiting">
           <p>{t('interview.waitingBody')}</p>
-          <a className="button button--secondary" href={href('bring')}>{t('interview.waitingCta')}</a>
+          <a className="button button--secondary" href={href('settings')}>{t('interview.waitingCta')}</a>
         </div>
       ) : null}
       {listening ? (
