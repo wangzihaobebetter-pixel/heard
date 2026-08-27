@@ -24,7 +24,7 @@ import { formatBytes, formatDuration, formatTimecode, minutesOf } from '../lib/t
 import { useT } from '../i18n';
 import { href, navigate } from '../router';
 import { getPlayer } from '../audio/player';
-import { maybeRunIntake } from '../audio/intake';
+import { generateInterviewNotes, maybeRunIntake, retryIntake } from '../audio/intake';
 import { wordAt } from '../components/wordCursor';
 import {
   applyWordEdits, canRedo, canUndo, findMatches, redoEdit, replaceAll,
@@ -51,7 +51,7 @@ const USER_SCROLL_GRACE_MS = 2000;
 type Tab = 'notes' | 'transcript' | 'ai';
 interface SelectionInfo { x: number; y: number; wi: number; wj: number; text: string }
 
-export default function Interview({ id }: { id: string }) {
+export default function Interview({ id, initialSeekSec }: { id: string; initialSeekSec?: number }) {
   const t = useT();
   const interview = useStore(selectInterview(id));
   const transcript = useStore(selectTranscript(id));
@@ -81,6 +81,7 @@ export default function Interview({ id }: { id: string }) {
   const [tab, setTab] = useState<Tab>('notes');
   const [sheet, setSheet] = useState<SheetHeight>('collapsed');
   const [pressedId, setPressedId] = useState<string | null>(null);
+  const [pressedAnchor, setPressedAnchor] = useState<Anchor | null>(null);
   const [afterglowId, setAfterglowId] = useState<string | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [stopped, setStopped] = useState(false);
@@ -177,9 +178,10 @@ export default function Interview({ id }: { id: string }) {
     ? playback.wordIndex
     : wordAt(transcript?.words ?? [], elTime);
   const pressedNote = useMemo(() => notes.find((n) => n.id === pressedId) ?? null, [notes, pressedId]);
+  const activeAnchor = pressedNote?.anchor ?? pressedAnchor;
   const spanWords = useMemo(
-    () => (pressedNote ? { wi: pressedNote.anchor.wi, wj: pressedNote.anchor.wj } : undefined),
-    [pressedNote],
+    () => (activeAnchor ? { wi: activeAnchor.wi, wj: activeAnchor.wj } : undefined),
+    [activeAnchor],
   );
 
   /* ------------------------------------------------------------ the shell */
@@ -204,6 +206,7 @@ export default function Interview({ id }: { id: string }) {
     setTab('notes');
     setSheet('collapsed');
     setPressedId(null);
+    setPressedAnchor(null);
     setAfterglowId(null);
     setFocusedId(null);
     setStopped(false);
@@ -304,7 +307,14 @@ export default function Interview({ id }: { id: string }) {
      do, so re-running on status flips costs nothing. */
   const ivStatus = useStore((s) => s.interviews[id]?.status);
   const sttKey = useStore((s) => s.settings.stt.key);
-  useEffect(() => { maybeRunIntake(id); }, [id, ivStatus, sttKey]);
+  const intakeWakeRef = useRef('');
+  useEffect(() => {
+    if (ivStatus !== 'listening' && ivStatus !== 'waiting') return;
+    const wake = `${id}:${sttKey}`;
+    if (intakeWakeRef.current === wake) return;
+    intakeWakeRef.current = wake;
+    maybeRunIntake(id);
+  }, [id, ivStatus, sttKey]);
 
   /* ----------------------------------------------------------- the player */
 
@@ -360,6 +370,7 @@ export default function Interview({ id }: { id: string }) {
      next noted moment plays by itself — mark during the lecture, listen to
      just the marks that night (§4.2). */
   const pressRef = useRef<(note: Note) => void>(() => undefined);
+  const deepLinkConsumedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!onlyNotes || !stopped || !playback.span) return;
     const spanS = playback.span.s;
@@ -435,6 +446,7 @@ export default function Interview({ id }: { id: string }) {
 
   const press = useCallback((note: Note) => {
     setPressedId(note.id);
+    setPressedAnchor(note.anchor);
     setFocusedId(note.id);
     setStopped(false);
     setNudged(false);
@@ -458,14 +470,17 @@ export default function Interview({ id }: { id: string }) {
      Taken once, and only after we know whether there is audio to seek. */
   useEffect(() => {
     if (hasAudio === null) return;
-    const s = takePendingSeek(id);
+    const deepLinkKey = initialSeekSec == null ? null : `${id}:${initialSeekSec}`;
+    const urlSeek = deepLinkKey && deepLinkConsumedRef.current !== deepLinkKey ? initialSeekSec : null;
+    const s = takePendingSeek(id) ?? urlSeek;
     if (s == null) return;
+    if (deepLinkKey) deepLinkConsumedRef.current = deepLinkKey;
     setTab('transcript');
     setElTime(s);
     if (hasAudio) player.seek(s);
     lastUserScrollRef.current = 0;
     window.requestAnimationFrame(() => scrollToSpan({ s, e: s, quality: 'unpinned' }));
-  }, [id, hasAudio, player, scrollToSpan]);
+  }, [id, initialSeekSec, hasAudio, player, scrollToSpan]);
 
   /* v3 B4: ⌘Z / ⌃Z undoes a transcript edit, shift redoes — unless focus is
      in a field, whose own undo the browser owns. */
@@ -507,7 +522,16 @@ export default function Interview({ id }: { id: string }) {
     setNudged(false);
     setNotice(null);
     const anchor: Anchor = { s: c.s, e: c.e, wi: c.wi, wj: c.wj, quality: 'word' };
-    if (hasAudio) void player.playSpan(anchor);
+    setPressedId(null);
+    setPressedAnchor(anchor);
+    setElTime(anchor.s);
+    if (hasAudio) {
+      void player.playSpan(anchor);
+      // A correct cursor inside a hidden transcript is not evidence the person
+      // can inspect. On phones, lift the current source paragraph into view just
+      // as a note's timecode does, while leaving the AI claim behind it intact.
+      if (window.innerWidth < 960) setSheet('mid');
+    }
     window.requestAnimationFrame(() => scrollToSpan(anchor));
   }, [hasAudio, player, scrollToSpan]);
 
@@ -697,6 +721,7 @@ export default function Interview({ id }: { id: string }) {
   const reading = interview.status === 'reading';
   const partial = interview.status === 'partial';
   const waiting = interview.status === 'waiting';
+  const failed = interview.status === 'failed';
   const noTranscript = !transcript || transcript.words.length === 0;
   const heardSec = transcript?.heardSec ?? 0;
   const audioMissing = hasAudio === false;
@@ -705,6 +730,9 @@ export default function Interview({ id }: { id: string }) {
   const points = notes.filter((n) => n.kind === 'point');
   const quotable = notes.filter((n) => n.kind === 'quote');
   const yours = notes.filter((n) => n.kind === 'yours');
+  const canRetryGeneratedNotes = !interview.sample && !interview.starter
+    && !listening && !reading && !waiting && !noTranscript
+    && points.length + quotable.length === 0 && !!llmKey.trim();
 
   /* v3 B3 marks review (§4.3): a ⚑ pressed during recording was intent
      captured, not a note taken. Once a transcript exists, each one surfaces
@@ -754,8 +782,8 @@ export default function Interview({ id }: { id: string }) {
 
   const currentParagraph = paragraphs.find(
     (p) => wordIndex >= p.words[0].i && wordIndex <= p.words[p.words.length - 1].i,
-  ) ?? (pressedNote
-    ? paragraphs.find((p) => p.e >= pressedNote.anchor.s && p.s <= pressedNote.anchor.e)
+  ) ?? (activeAnchor
+    ? paragraphs.find((p) => p.e >= activeAnchor.s && p.s <= activeAnchor.e)
     : undefined);
 
   const notesPane = (
@@ -783,7 +811,7 @@ export default function Interview({ id }: { id: string }) {
       {waiting ? (
         <div className="iv__pending card-note" data-testid="notes-waiting">
           <p>{t('interview.waitingBody')}</p>
-          <a className="button button--secondary" href={href('bring')}>{t('interview.waitingCta')}</a>
+          <a className="button button--secondary" href={href('settings')}>{t('interview.waitingCta')}</a>
         </div>
       ) : null}
       {listening ? (
@@ -791,6 +819,20 @@ export default function Interview({ id }: { id: string }) {
       ) : null}
       {reading ? (
         <p className="iv__pending card-note" data-testid="reading-back">{t('interview.readingBack')}</p>
+      ) : null}
+      {canRetryGeneratedNotes ? (
+        <div className="iv__pending card-note" data-testid="notes-retry">
+          <p><strong>{t('interview.notesRetryTitle')}</strong></p>
+          <p>{t('interview.notesRetryBody')}</p>
+          <button
+            type="button"
+            className="button button--secondary"
+            data-testid="retry-notes"
+            onClick={() => { void generateInterviewNotes(id); }}
+          >
+            {t('interview.notesRetryAction')}
+          </button>
+        </div>
       ) : null}
 
       {reviewable.length > 0 ? (
@@ -984,9 +1026,13 @@ export default function Interview({ id }: { id: string }) {
               type="button"
               className="btn btn--secondary"
               data-testid="not-heard-cta"
-              onClick={() => { if (sttKey.trim()) maybeRunIntake(id); else navigate('bring'); }}
+              onClick={() => {
+                if (failed) navigate('bring');
+                else if (sttKey.trim()) retryIntake(id);
+                else navigate('settings');
+              }}
             >
-              {t('action.listenOnce')}
+              {failed ? t('action.chooseAnother') : t('action.listenOnce')}
             </button>
           </div>
         ) : (
@@ -1003,7 +1049,7 @@ export default function Interview({ id }: { id: string }) {
                       <p className="iv__empty-title">
                         {t('interview.gapTitle', { from: Math.floor(gap.s / 60), to: minutesOf(gap.e) })}
                       </p>
-                      <button type="button" className="btn btn--secondary" data-testid="gap-retry" onClick={() => maybeRunIntake(id)}>{t('action.tryAgain')}</button>
+                      <button type="button" className="btn btn--secondary" data-testid="gap-retry" onClick={() => retryIntake(id)}>{t('action.tryAgain')}</button>
                     </div>
                   ) : null}
                 </div>
@@ -1184,7 +1230,12 @@ export default function Interview({ id }: { id: string }) {
       </div>
 
       <Player
-        snap={{ ...playback, wordIndex, speed }}
+        snap={{
+          ...playback,
+          currentTime: playback.playing ? playback.currentTime : elTime,
+          wordIndex,
+          speed,
+        }}
         peaks={peaks}
         hasAudio={!audioMissing}
         durationSec={interview.durationSec}
@@ -1194,7 +1245,13 @@ export default function Interview({ id }: { id: string }) {
         height={sheet}
         onHeight={setSheet}
         onToggle={() => player.toggle()}
-        onSeek={(s) => player.seek(s)}
+        onSeek={(s) => {
+          player.seek(s);
+          setElTime(s);
+          setPressedId(null);
+          setPressedAnchor({ s, e: s, quality: 'unpinned' });
+          if (window.innerWidth < 960 && tab !== 'transcript') setSheet('mid');
+        }}
         onNudge={(d) => { player.nudge(d); setNudged(true); }}
         onKeepListening={() => { setStopped(false); player.keepListening(); }}
         onPlayAgain={() => { setStopped(false); void player.playAgain(); }}

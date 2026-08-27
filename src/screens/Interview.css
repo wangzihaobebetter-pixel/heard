@@ -165,6 +165,13 @@ html[data-screen='interview'], html[data-screen='interview'] body { overflow: hi
   box-shadow: var(--elev-1);
 }
 
+@media (max-width: 959px) {
+  .iv__title,
+  .iv__title-edit { min-height: var(--touch-min); }
+  .iv__title { display: flex; align-items: center; }
+  .seg { height: var(--touch-min); }
+}
+
 /* ------------------------------------------------------------------- body */
 
 .iv__body {

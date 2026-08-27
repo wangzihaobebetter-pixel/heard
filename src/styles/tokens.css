@@ -103,6 +103,12 @@
 }
 
 :root {
+  /* Purposeful inverse panels (proof source, recording transport). These
+     follow the active theme instead of hard-coding a light or dark island. */
+  --inverse-bg: var(--ink);
+  --inverse-ink: var(--bg);
+  --inverse-muted: var(--bg-1);
+
   /* ---------------------------------------------------------- typography
      System stacks only — zero webfont download, native CJK.
      Display is SERIF (measured: Songti SC elegant at 400/500 on dark;
@@ -169,7 +175,7 @@
   /* ------------------------------------------------------- chrome heights */
   --appbar-h: 56px;
   --player-bar-h: 88px;           /* desktop */
-  --player-sheet-collapsed: 152px; /* mobile */
+  --player-sheet-collapsed: 208px; /* mobile: waveform + 44 px transport/modes */
   --player-sheet-mid: 42vh;
 
   /* --------------------------------------------- timecode chip anatomy §5 */

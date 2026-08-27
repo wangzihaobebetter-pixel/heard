@@ -19,6 +19,14 @@ export function formatTimecode(sec: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
+/**
+ * A note location for export. An unpinned anchor may carry a nearest-place
+ * second for UI context, but exporting that second as exact would overclaim.
+ */
+export function formatAnchorLocation(anchor: { s: number; quality: string }): string {
+  return anchor.quality === 'unpinned' ? 'unlocated' : formatTimecode(anchor.s);
+}
+
 /** `14:31.2` — the player's readout while seeking (DESIGN §5, "tenths while seeking"). */
 export function formatTimecodeTenths(sec: number): string {
   const safe = Math.max(0, sec || 0);

@@ -364,14 +364,40 @@
    full width first (§6 principle 2 — one metaphor, three jobs), and the
    transport reads beneath it. Desktop keeps the single instrument bar. */
 @media (max-width: 959px) {
+  .player__grabber { height: var(--touch-min); }
   .player__row {
     flex-wrap: wrap;
     height: auto;
+    gap: var(--space-2);
     row-gap: var(--space-1);
   }
   .player__track {
     flex: 1 1 100%;
     order: -1;
     height: 48px;
+  }
+  .player__range { height: var(--touch-min); }
+  .player__skipbtn,
+  .player__speed {
+    min-width: var(--touch-min);
+    height: var(--touch-min);
+  }
+  .modechip { min-height: var(--touch-min); height: var(--touch-min); }
+  .player__after .btn,
+  .player__after .nudge {
+    min-height: var(--touch-min);
+  }
+  .player[data-height='collapsed'] .player__after[data-shown='true'] {
+    position: absolute;
+    left: var(--gutter);
+    right: var(--gutter);
+    bottom: calc(100% + var(--space-2));
+    z-index: 2;
+    max-height: none;
+    padding: var(--space-2);
+    border: 1px solid var(--hairline-2);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--elev-2);
   }
 }

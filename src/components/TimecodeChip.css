@@ -35,6 +35,14 @@
     box-shadow var(--dur-state) var(--ease-fade);
 }
 
+/* A proven, playable second is the product's receipt. This is the same signal
+   used by the Library proof card and Bring preview; weaker states below opt out. */
+.tc[data-dashed='false'][data-approx='false'] {
+  border-color: color-mix(in srgb, var(--anchor) 48%, var(--hairline));
+  background: color-mix(in srgb, var(--anchor) 8%, var(--surface));
+  color: var(--anchor);
+}
+
 /* The digits hold a fixed measure so a column of chips is flush on both edges.
    --tc-width is set per interview by the Notes pane: 5ch under an hour, 7ch
    once any timecode carries an hours field. */

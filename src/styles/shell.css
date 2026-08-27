@@ -6,43 +6,91 @@
   flex-direction: column;
 }
 
-.appbar {
-  height: var(--appbar-h);
+.shell[data-global-nav='true'] {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
+/* Proof Canvas navigation: one object, not a header rebuilt by every screen.
+   It is a thumb dock on a phone and the same object turns into a quiet rail on
+   a larger canvas. The listening and recording rooms do not render it. */
+.appnav {
+  position: fixed;
+  z-index: 40;
+  left: 8px;
+  right: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  height: 72px;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: 0 var(--gutter);
-  border-bottom: 1px solid var(--hairline);
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  gap: 2px;
+  padding: 6px;
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  border: 1px solid var(--hairline-2);
+  border-radius: 19px;
+  box-shadow: var(--elev-2);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
-.appbar__name {
-  font-family: var(--font-display);
-  font-size: 17px;
+.appnav__brand { display: none; }
+
+.appnav__items {
+  min-width: 0;
+  flex: 3;
+  display: flex;
+  align-items: center;
+}
+
+.appnav__link {
+  min-width: 0;
+  min-height: 58px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 3px;
+  border-radius: 14px;
+  color: var(--ink-3);
+  text-decoration: none;
+  font-size: 10px;
+  line-height: 1;
   font-weight: var(--weight-medium);
   letter-spacing: 0.01em;
+  transition: color var(--dur-state) var(--ease-fade),
+              background var(--dur-state) var(--ease-fade);
 }
 
-.appbar__spacer { flex: 1; }
+.appnav > .appnav__link { flex: 1; }
 
-.appbar a, .appbar button {
-  min-height: var(--touch-min);
-  display: inline-flex;
-  align-items: center;
-  color: var(--ink-2);
-  text-decoration: none;
-  font-size: var(--size-secondary);
+.appnav__link svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
+
+.appnav__link .appnav__record-dot {
+  fill: var(--anchor);
+  stroke: none;
+}
+
+.appnav__link[aria-current='page'] {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.appnav__link:hover { color: var(--ink); }
 
 .screen {
   flex: 1;
   padding: var(--space-6) var(--gutter) var(--space-8);
-  max-width: 900px;
+  max-width: 1120px;
   width: 100%;
   margin: 0 auto;
 }
@@ -85,6 +133,68 @@
 }
 
 @media (min-width: 960px) {
+  .shell[data-global-nav='true'] {
+    padding-left: 80px;
+    padding-bottom: 0;
+  }
+
+  .appnav {
+    inset: 0 auto 0 0;
+    width: 80px;
+    height: auto;
+    display: grid;
+    grid-template-rows: 66px 1fr auto;
+    align-items: start;
+    gap: var(--space-2);
+    padding: 10px;
+    background: var(--bg);
+    border: 0;
+    border-right: 1px solid var(--hairline);
+    border-radius: 0;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .appnav__brand {
+    width: 60px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-size: 29px;
+    font-weight: var(--weight-medium);
+  }
+
+  .appnav__brand i {
+    width: 7px;
+    height: 7px;
+    margin: 10px 0 0 1px;
+    border-radius: 50%;
+    background: var(--anchor);
+  }
+
+  .appnav__items {
+    width: 60px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    padding-top: var(--space-2);
+  }
+
+  .appnav__link,
+  .appnav > .appnav__link {
+    width: 60px;
+    min-height: 58px;
+    flex: none;
+  }
+
   .screen { padding-left: var(--gutter-desktop); padding-right: var(--gutter-desktop); }
-  .appbar { padding: 0 var(--gutter-desktop); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appnav__link { transition: none; }
 }

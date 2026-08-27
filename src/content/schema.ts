@@ -42,7 +42,7 @@ export interface Citation {
 /** Precomputed AI layer for one starter entry (spec §4.4, no-key state). */
 export interface StarterArtifacts {
   /** 2–4 short paragraphs; every load-bearing claim cited */
-  summary: { text: string; citations: Citation[] };
+  summary: { text: string; citations: (Citation | null)[] };
   /** timestamped outline; every entry is a seek link */
   chapters: { title: string; at: Citation }[];
   /** key terms with definitions, each cited */

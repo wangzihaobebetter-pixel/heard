@@ -21,6 +21,23 @@ registerStrings('app', {
   },
 });
 
+registerStrings('nav', {
+  en: {
+    'primary': 'Primary navigation',
+    'library': 'Library',
+    'record': 'Record',
+    'bring': 'Bring',
+    'settings': 'Settings',
+  },
+  'zh-CN': {
+    'primary': '主导航',
+    'library': '资料库',
+    'record': '录音',
+    'bring': '导入',
+    'settings': '设置',
+  },
+});
+
 registerStrings('action', {
   en: {
     'back': 'Back',

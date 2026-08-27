@@ -1,7 +1,7 @@
 {
   "name": "Heard · 听证",
   "short_name": "Heard",
-  "description": "Notes that can prove themselves. Drop in an interview; press any line and hear the second it was said. Everything stays in your browser.",
+  "description": "Notes that can prove themselves. Your library stays in this browser; audio and transcript go directly to providers you connect.",
   "lang": "en",
   "id": "./",
   "start_url": "./",

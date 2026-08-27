@@ -17,6 +17,7 @@ import Interview from './screens/Interview';
 import Bring from './screens/Bring';
 import Record from './screens/Record';
 import Settings from './screens/Settings';
+import AppNav from './components/AppNav';
 import { useRecorder } from './audio/recorder';
 import { maybeRunIntake } from './audio/intake';
 import { formatDuration } from './lib/time';
@@ -36,6 +37,7 @@ export default function App() {
   const theme = useStore((s) => s.settings.ui.theme);
   const lang = useStore((s) => s.settings.ui.lang);
   const firstRunSeen = useStore((s) => s.ui.firstRunSeen);
+  const recorderPhase = useRecorder((s) => s.phase);
 
   /* Hydration is async (IndexedDB), and `hasHydrated()` is NOT reactive — a
      plain read leaves the first-run effect wired to a value that never changes,
@@ -103,14 +105,14 @@ export default function App() {
     return () => { cancelled = true; };
   }, [hydrated, firstRunSeen]);
 
+  const globalNav = recorderPhase === 'idle' && (
+    route.name === 'library' || route.name === 'bring'
+    || route.name === 'settings' || route.name === 'notfound'
+  );
+
   return (
-    <div className="shell">
-      <header className="appbar">
-        <a className="appbar__name" href={href('library')}>{t('app.name')}</a>
-        <span className="appbar__spacer" />
-        <a href={href('bring')}>{t('action.bringRecording')}</a>
-        <a href={href('settings')} aria-label={t('settings.title')}>{t('settings.title')}</a>
-      </header>
+    <div className="shell" data-global-nav={globalNav ? 'true' : 'false'}>
+      {globalNav ? <AppNav active={route.name} /> : null}
       {renderRoute(route.name, route.params)}
       {route.name !== 'record' ? <RecorderBar /> : null}
     </div>
@@ -140,7 +142,10 @@ function RecorderBar() {
 
 function renderRoute(name: ReturnType<typeof useRoute>['name'], params: Record<string, string>) {
   switch (name) {
-    case 'interview': return <Interview id={params.id} />;
+    case 'interview': {
+      const seek = Number(params.t);
+      return <Interview id={params.id} initialSeekSec={Number.isFinite(seek) ? seek : undefined} />;
+    }
     case 'bring': return <Bring />;
     case 'record': return <Record />;
     case 'settings': return <Settings />;

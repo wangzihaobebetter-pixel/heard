@@ -11,11 +11,11 @@
  *  - User recordings generate theirs here, under the same prompt law the
  *    notes model lives by (src/notes/prompt.ts): the model sees word indices
  *    and never a clock, every claim carries a VERBATIM quote, and every quote
- *    must re-align to the word timeline (src/audio/align.ts) or its citation
- *    is dropped — an uncited sentence ships as text, never as a chip
- *    pretending to a moment it cannot prove.
+ *    must re-align to the word timeline (src/audio/align.ts). Generated
+ *    summaries and answers fail closed when any claim lacks a verified
+ *    citation; unsupported prose never ships beside a valid receipt.
  *
- * Generated artifacts persist in IndexedDB (`artifacts:<id>`), outside the
+ * Generated artifacts persist in versioned IndexedDB (`artifacts:v2:<id>`), outside the
  * JSON-serialised store, same reasoning as the starter bundles (B1).
  */
 import { del, get, set } from 'idb-keyval';
@@ -27,7 +27,8 @@ import { renderWindow } from '../notes/prompt';
 import type { Citation, StarterArtifacts } from '../content/schema';
 import type { Word } from '../types';
 
-const artifactsKey = (id: string) => `artifacts:${id}`;
+const legacyArtifactsKey = (id: string) => `artifacts:${id}`;
+const artifactsKey = (id: string) => `artifacts:v2:${id}`;
 const MIN_ALIGN = 0.85;
 
 /* ----------------------------------------------------------------- reading */
@@ -54,6 +55,7 @@ export async function getArtifacts(interviewId: string): Promise<StarterArtifact
 export async function removeArtifacts(interviewId: string): Promise<void> {
   memory.delete(interviewId);
   try { await del(artifactsKey(interviewId)); } catch { /* gone is fine */ }
+  try { await del(legacyArtifactsKey(interviewId)); } catch { /* old cache may not exist */ }
 }
 
 /* -------------------------------------------------------------- generation */
@@ -92,6 +94,42 @@ function parseRaw(raw: string): RawArtifacts | null {
 
 const asStr = (x: unknown): string => (typeof x === 'string' ? x : '');
 const asArr = (x: unknown): unknown[] => (Array.isArray(x) ? x : []);
+
+/**
+ * Generated prose is only useful to Heard when every claim carries a receipt.
+ * Normalize the common `claim.[1]` form, then require every sentence/paragraph
+ * to contain a canonical marker whose quote survived alignment. Extra citation
+ * entries are rejected too: the provider must not smuggle unused evidence into
+ * an otherwise plausible response.
+ */
+function hasCompleteCitationCoverage(text: string, citations: (Citation | null)[]): boolean {
+  const prose = text.trim();
+  if (!prose || citations.length === 0 || !citations.every(Boolean)) return false;
+
+  const markerMatches = [...prose.matchAll(/\[(\d+)\]/g)];
+  if (markerMatches.length === 0) return false;
+  const referenced = new Set<number>();
+  for (const match of markerMatches) {
+    const raw = match[1];
+    const n = Number(raw);
+    if (raw !== String(n) || !Number.isInteger(n) || n < 1 || n > citations.length || !citations[n - 1]) {
+      return false;
+    }
+    referenced.add(n);
+  }
+  if (!citations.every((_, index) => referenced.has(index + 1))) return false;
+
+  const normalized = prose.replace(
+    /([.!?。！？;；])\s*((?:\[\d+\]\s*)+)/g,
+    '$2$1 ',
+  );
+  const delimited = normalized.replace(/([!?。！？;；]|\.(?!\d))/g, '$1\n');
+  const claimUnits = delimited
+    .split(/\n+/)
+    .map((unit) => unit.trim())
+    .filter((unit) => unit.replace(/\[\d+\]/g, '').replace(/[.!?。！？;；]/g, '').trim().length > 0);
+  return claimUnits.length > 0 && claimUnits.every((unit) => /\[\d+\]/.test(unit));
+}
 
 export type GenerateResult =
   | { ok: true; artifacts: StarterArtifacts }
@@ -160,10 +198,10 @@ export async function generateArtifacts(
 
   const artifacts: StarterArtifacts = {
     summary: {
-      text: asStr(parsed.summary?.text),
+      text: asStr(parsed.summary?.text).trim(),
       // Nullable per marker: a failed citation keeps its [n] as plain text
       // instead of renumbering every other marker.
-      citations: asArr(parsed.summary?.citations).map((q) => resolve(asStr(q))) as Citation[],
+      citations: asArr(parsed.summary?.citations).map((q) => resolve(asStr(q))),
     },
     chapters: asArr(parsed.chapters).flatMap((c) => {
       const o = (c ?? {}) as Record<string, unknown>;
@@ -182,6 +220,10 @@ export async function generateArtifacts(
     }),
   };
 
+  const summaryText = artifacts.summary.text.trim();
+  if (summaryText && !hasCompleteCitationCoverage(summaryText, artifacts.summary.citations)) {
+    return { ok: false, reason: 'failed' };
+  }
   if (!artifacts.summary.text && !artifacts.chapters.length) return { ok: false, reason: 'failed' };
 
   memory.set(interviewId, artifacts);
@@ -259,5 +301,6 @@ export async function runPrompt(interviewId: string, prompt: string): Promise<
       corrob: +(ratio ?? 0).toFixed(4),
     };
   });
+  if (!hasCompleteCitationCoverage(answer, citations)) return { ok: false, reason: 'failed' };
   return { ok: true, result: { answer, citations } };
 }

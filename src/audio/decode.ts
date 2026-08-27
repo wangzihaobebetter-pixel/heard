@@ -53,6 +53,7 @@ export type EngineErrorCode =
   | 'tooBig'        // over MAX_FILE_BYTES even on desktop
   | 'keyRefused'    // 401/403 from the provider
   | 'offline'       // no network
+  | 'providerFailed' // non-auth provider HTTP failure; settings may be corrected
   | 'decodeFailed'; // decoded, but the result was empty or absurd
 
 export class EngineError extends Error {

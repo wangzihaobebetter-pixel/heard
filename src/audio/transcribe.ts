@@ -171,12 +171,16 @@ export async function transcribeOnce(
     if (res.status === 401 || res.status === 403) {
       throw new EngineError('keyRefused', `provider returned ${res.status}`, cfg.provider);
     }
-    if (isRetriable(res.status) && attempt < retries) {
-      await sleep(backoffMs(attempt, res.headers.get('retry-after')));
-      continue;
+    if (isRetriable(res.status)) {
+      if (attempt < retries) {
+        await sleep(backoffMs(attempt, res.headers.get('retry-after')));
+        continue;
+      }
+      const detail = await res.text().catch(() => '');
+      throw new EngineError('providerFailed', `provider returned ${res.status} ${detail.slice(0, 300)}`);
     }
     const detail = await res.text().catch(() => '');
-    throw new EngineError('decodeFailed', `provider returned ${res.status} ${detail.slice(0, 300)}`);
+    throw new EngineError('providerFailed', `provider returned ${res.status} ${detail.slice(0, 300)}`);
   }
 }
 
@@ -275,6 +279,8 @@ export function mergeChunks(
 /* ------------------------------------------------------------- pipeline */
 
 export interface TranscribeHooks {
+  /** Reuse matching completed chunks when resuming a partial transcript. */
+  previous?: Transcript;
   /** Fires after every chunk with a complete, readable transcript so far. */
   onProgress?: (transcript: Transcript) => void;
   /** Fires once per chunk with its final state, for the §4.2 chunk strip. */
@@ -295,16 +301,31 @@ export async function transcribeChunks(
   cfg: SttConfig,
   hooks: TranscribeHooks = {},
 ): Promise<Transcript> {
-  const results: (ChunkResult | null)[] = chunks.map(() => null);
-  const states: TranscriptChunk['state'][] = chunks.map(() => 'pending');
+  const previous = hooks.previous;
+  const matchesPrevious = (chunk: AudioChunk) => previous?.chunks.some((prior) =>
+    prior.state === 'done'
+    && prior.i === chunk.i
+    && Math.abs(prior.s - chunk.startSec) < 1e-6
+    && Math.abs(prior.e - chunk.endSec) < 1e-6,
+  ) ?? false;
+  const results: (ChunkResult | null)[] = chunks.map((chunk) => matchesPrevious(chunk) ? {
+    words: previous!.words
+      .filter((word) => word.s >= chunk.startSec && word.s < chunk.endSec)
+      .map(({ t, s, e }) => ({ t, s, e })),
+    segments: previous!.segments
+      .filter((segment) => segment.s >= chunk.startSec && segment.s < chunk.endSec)
+      .map(({ s, e }) => ({ s, e })),
+  } : null);
+  const states: TranscriptChunk['state'][] = results.map((result) => result ? 'done' : 'pending');
   const durationSec = chunks.length ? chunks[chunks.length - 1].endSec : 0;
-  let lang = cfg.lang === 'auto' ? 'auto' : cfg.lang;
+  let lang = cfg.lang === 'auto' ? (previous?.lang ?? 'auto') : cfg.lang;
 
   const abort = new AbortController();
   const onOuterAbort = () => abort.abort();
   hooks.signal?.addEventListener('abort', onOuterAbort);
 
   let fatal: unknown = null;
+  let transientFailure: EngineError | null = null;
   let next = 0;
 
   const publish = () => hooks.onProgress?.(mergeChunks(chunks, results, states, durationSec, lang));
@@ -313,6 +334,7 @@ export async function transcribeChunks(
     for (;;) {
       const c = next++;
       if (c >= chunks.length || fatal || abort.signal.aborted) return;
+      if (states[c] === 'done') continue;
       const chunk = chunks[c];
       try {
         const raw = await transcribeOnce(
@@ -332,6 +354,9 @@ export async function transcribeChunks(
           abort.abort();
           return;
         }
+        if (err instanceof EngineError
+          && (err.code === 'offline' || err.code === 'providerFailed')
+          && !transientFailure) transientFailure = err;
         states[c] = 'failed';
       }
       hooks.onChunk?.(c, states[c]);
@@ -348,6 +373,7 @@ export async function transcribeChunks(
   }
 
   if (fatal) throw fatal;
+  if (!results.some(Boolean) && transientFailure) throw transientFailure;
   return mergeChunks(chunks, results, states, durationSec, lang);
 }
 

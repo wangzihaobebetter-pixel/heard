@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && node verify-i18n.mjs && node verify-tokens.mjs && node verify-router.mjs && node verify-contracts.mjs && node verify-pwa.mjs && node verify-sample.mjs && node scripts/verify-a4.mjs && vite build && node build-sw.mjs",
     "preview": "vite preview --host",
     "start": "vite --port 4173 --host",
+    "test": "node --test --test-concurrency=1 tests/product-core.test.mjs",
     "verify:i18n": "node verify-i18n.mjs",
     "verify:tokens": "node verify-tokens.mjs",
     "verify:router": "node verify-router.mjs",
@@ -20,7 +21,14 @@
     "icons": "node make-icons.mjs",
     "verify:export": "node verify-export.mjs",
     "verify:export:golden": "node verify-export.mjs --golden",
-    "verify:follow": "node verify-follow.mjs"
+    "verify:follow": "node verify-follow.mjs",
+    "verify:core": "node --test --test-concurrency=1 tests/product-core.test.mjs",
+    "verify:experience": "node verify-experience.mjs",
+    "verify:touch": "node verify-touch.mjs",
+    "verify:notes-retry": "node verify-notes-retry.mjs",
+    "verify:intake": "node verify-intake.mjs",
+    "verify:browser": "node verify-browser.mjs",
+    "verify:all": "npm run build && npm run verify:core && npm run verify:export:golden && npm run verify:engine && npm run verify:browser"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",

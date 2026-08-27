@@ -3,10 +3,8 @@
  *
  * REVIEW §6 WP3 asks for three things and this script is all three:
  *
- *   1. a golden-file byte comparison of the generated quote sheet against
- *      DESIGN §4.5's format block — which is *lifted out of DESIGN.md at run
- *      time*, not copied into a fixture here, so the design of record is
- *      literally the oracle;
+ *   1. a golden-file byte comparison of the generated quote sheet against the
+ *      committed user-visible export contract in tests/fixtures;
  *   2. headless assertions that the size / duration / key-refused / offline
  *      states render the exact i18n strings, in **both** languages — compared
  *      against the string table itself (bundled out of `src/i18n` with esbuild),
@@ -32,11 +30,12 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 
 const ROOT = process.cwd();
-const DESIGN = resolve(ROOT, '../memory/traceable-notes/DESIGN.md');
+const GOLDEN = resolve(ROOT, 'tests/fixtures/quote-sheet.golden.md');
 const DIST = resolve(ROOT, 'dist');
-const SHOTS = resolve(ROOT, 'shots');
+const SHOTS = resolve(process.env.HEARD_SHOTS ?? resolve(ROOT, 'shots'));
 const MEDIA = join(tmpdir(), 'heard-wp3');
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const CHROME = process.env.CHROME_PATH
+  ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
 const ONLY_GOLDEN = process.argv.includes('--golden');
 const KEEP = process.argv.includes('--keep');
@@ -81,19 +80,6 @@ async function bundle(entrySource, outName) {
     logLevel: 'silent',
   });
   return import(`file://${out}?v=${Date.now()}`);
-}
-
-/* ============================================================ the oracle */
-
-/** DESIGN §4.5's fenced block, verbatim. This is the golden file. */
-function designQuoteSheetBlock() {
-  const md = readFileSync(DESIGN, 'utf8');
-  const from = md.indexOf('### 4.5 Export');
-  const to = md.indexOf('### 4.6');
-  if (from < 0 || to < 0) throw new Error('DESIGN.md §4.5 not found — has the design moved?');
-  const m = /```\n([\s\S]*?)```/.exec(md.slice(from, to));
-  if (!m) throw new Error('DESIGN.md §4.5 has no fenced format block');
-  return m[1];
 }
 
 /* ================================================================ servers */
@@ -215,23 +201,19 @@ async function chooseFile(page, path) {
 async function main() {
   /* ---------------------------------------------------- 1 · the golden file */
 
-  const golden = designQuoteSheetBlock();
+  const golden = readFileSync(GOLDEN, 'utf8');
 
   const mod = await bundle(
     [
       "import './src/i18n/strings';",
       "export { translate, setLang } from './src/i18n/index';",
       "export { buildQuoteSheet, quoteSheetFilename } from './src/export/quotesheet';",
-      "export { EXPORT_FIXTURE_INTERVIEW, EXPORT_FIXTURE_NOTES, EXPORT_FIXTURE_PLACEHOLDERS } from './src/export/fixture';",
+      "export { EXPORT_FIXTURE_INTERVIEW, EXPORT_FIXTURE_NOTES } from './src/export/fixture';",
     ].join('\n').replaceAll("'./src/", `'${ROOT}/src/`),
     'wp3-export',
   );
 
-  let expected = golden;
-  for (const [placeholder, value] of Object.entries(mod.EXPORT_FIXTURE_PLACEHOLDERS)) {
-    if (!expected.includes(placeholder)) bad(`DESIGN §4.5 no longer contains the placeholder ${placeholder}`);
-    expected = expected.replaceAll(placeholder, value);
-  }
+  const expected = golden;
 
   mod.setLang('en');
   const produced = mod.buildQuoteSheet({
@@ -240,19 +222,18 @@ async function main() {
   });
 
   if (produced === expected) {
-    ok(`quote sheet matches DESIGN §4.5 byte-for-byte (${Buffer.byteLength(produced)} bytes)`);
+    ok(`quote sheet matches the committed golden byte-for-byte (${Buffer.byteLength(produced)} bytes)`);
   } else {
     const a = produced.split('\n');
     const b = expected.split('\n');
     const diff = [];
     for (let i = 0; i < Math.max(a.length, b.length); i++) {
-      if (a[i] !== b[i]) diff.push(`line ${i + 1}\n        design: ${JSON.stringify(b[i])}\n        built : ${JSON.stringify(a[i])}`);
+      if (a[i] !== b[i]) diff.push(`line ${i + 1}\n        golden: ${JSON.stringify(b[i])}\n        built : ${JSON.stringify(a[i])}`);
     }
-    bad('quote sheet does NOT match DESIGN §4.5', diff.join('\n      '));
+    bad('quote sheet does NOT match the committed golden', diff.join('\n      '));
   }
 
-  // The zh-CN sheet is not in DESIGN as a block, but the two things §7 of the
-  // review names explicitly — the section headings and "（尚未核听）" — are.
+  // The zh-CN sheet is checked structurally against the same real generator.
   mod.setLang('zh-CN');
   const zh = mod.buildQuoteSheet({
     interview: mod.EXPORT_FIXTURE_INTERVIEW,
@@ -297,13 +278,15 @@ async function main() {
     headless: true,
     args: ['--no-sandbox', '--disable-dev-shm-usage'],
   });
+  const context = browser.defaultBrowserContext();
+  await context.overridePermissions(base, ['clipboard-read', 'clipboard-write']);
 
   /** Each scenario gets its own storage so a saved key cannot leak into the
       "no key yet" screenshot, and so first-run really is first run. */
   async function scenario(fn, { width = 390, height = 844, mobile = false } = {}) {
-    const context = await browser.createBrowserContext();
-    const page = await context.newPage();
-    await context.overridePermissions(base, ['clipboard-read', 'clipboard-write']);
+    const page = await browser.newPage();
+    const cdp = await page.createCDPSession();
+    await cdp.send('Storage.clearDataForOrigin', { origin: base, storageTypes: 'all' });
     await page.setViewport({ width, height, deviceScaleFactor: 2, isMobile: mobile, hasTouch: mobile });
     if (mobile) {
       await page.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
@@ -311,7 +294,7 @@ async function main() {
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-    try { await fn(page, errors); } finally { if (!KEEP) await context.close(); }
+    try { await fn(page, errors); } finally { if (!KEEP) await page.close(); }
   }
 
   const t = (key, vars) => mod.translate(key, vars);
@@ -376,7 +359,9 @@ async function main() {
     await scenario(async (page) => {
       if (lang === 'zh') await setLanguage(page, base, 'zh');
       await openScreen(page, base, '#/settings');
+      await clickWhenReady(page, '[data-section="transcription"] > summary');
       await clickWhenReady(page, '[data-section="transcription"] .keyfield__disclosure');
+      await page.waitForSelector('[data-testid="stt-base"]', { visible: true });
       await page.$eval('[data-testid="stt-base"]', (el) => { el.value = ''; });
       await page.type('[data-testid="stt-base"]', providerUrl);
       await page.type('[data-testid="stt-key"]', 'bad');
@@ -402,6 +387,7 @@ async function main() {
     await scenario(async (page) => {
       if (lang === 'zh') await setLanguage(page, base, 'zh');
       await openScreen(page, base, '#/settings');
+      await clickWhenReady(page, '[data-section="transcription"] > summary');
       await page.type('[data-testid="stt-key"]', 'good');
       await sleep(200);
       await openScreen(page, base, '#/add');
@@ -421,7 +407,9 @@ async function main() {
 
   await scenario(async (page) => {
     await openScreen(page, base, '#/settings');
+    await clickWhenReady(page, '[data-section="transcription"] > summary');
     await clickWhenReady(page, '[data-section="transcription"] .keyfield__disclosure');
+    await page.waitForSelector('[data-testid="stt-base"]', { visible: true });
     await page.$eval('[data-testid="stt-base"]', (el) => { el.value = ''; });
     await page.type('[data-testid="stt-base"]', providerUrl);
     await page.type('[data-testid="stt-key"]', 'good');
@@ -566,7 +554,7 @@ async function main() {
       });
       await shot('shot-settings', theme, width, async (page) => {
         await openScreen(page, base, '#/settings');
-        await page.waitForSelector('[data-section="about"]');
+        await page.waitForSelector('[data-testid="settings-privacy"]');
       });
     }
   }
@@ -609,7 +597,10 @@ main().then(() => {
     problems.forEach((p) => console.error('  ✗ ' + p));
     process.exit(1);
   }
-  console.log(`\nverify-export: ${checks} checks passed — quote sheet matches DESIGN §4.5 byte-for-byte, refusal copy verbatim in both languages, screenshot set filed in shots/ ✓`);
+  const scope = ONLY_GOLDEN
+    ? 'committed golden and bilingual export structure'
+    : `golden, refusal states, provider tests and screenshots in ${SHOTS}`;
+  console.log(`\nverify-export: ${checks} checks passed — ${scope} ✓`);
 }).catch((err) => {
   console.log(notes.join('\n'));
   console.error('\nverify-export: crashed');

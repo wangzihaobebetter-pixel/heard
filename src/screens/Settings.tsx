@@ -21,7 +21,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useT } from '../i18n';
-import { href } from '../router';
+
 import { useStore, selectInterviewList } from '../store';
 import { LLM_PRESETS, STT_PRESETS } from '../store/presets';
 import { audioBytes, isStorageDegraded } from '../lib/storage';
@@ -92,6 +92,10 @@ export default function Settings() {
     () => STT_PRESETS.find((p) => p.id === settings.stt.preset)?.label ?? settings.stt.preset,
     [settings.stt.preset],
   );
+  const llmProvider = useMemo(
+    () => LLM_PRESETS.find((p) => p.id === settings.llm.preset)?.label ?? settings.llm.preset,
+    [settings.llm.preset],
+  );
 
   const kept = interviews.filter((i) => i.file.kept);
   const credit = sampleBundle()?.credit ?? t('unit.nasaCredit');
@@ -124,18 +128,27 @@ export default function Settings() {
 
   return (
     <>
-      <header className="topbar">
-        <a className="topbar__name" href={href('library')}>{t('app.name')}</a>
-        <span className="topbar__spacer" />
-        <a className="button button--quiet" href={href('library')}>{t('action.done')}</a>
-      </header>
-
       <main className="screen settings" data-screen="settings">
-        <h1 className="screen__title">{t('settings.title')}</h1>
+        <header className="settings__masthead">
+          <p className="settings__eyebrow micro">{t('settings.eyebrow')}</p>
+          <h1 className="screen__title">{t('settings.title')}</h1>
+          <p className="settings__intro secondary">{t('settings.intro')}</p>
+        </header>
+
+        <div className="settings__layout">
+          <section className="settings__group settings__connections">
+            <h2 className="settings__group-title">{t('settings.connections')}</h2>
 
         {/* ------------------------------------------------ 1 · Transcription */}
-        <section className="section settings__section" data-section="transcription">
-          <h2 className="section__label">{t('settings.transcription')}</h2>
+        <details className="section settings__section settings__connection" data-section="transcription" data-testid="stt-connection">
+          <summary className="settings__connection-summary">
+            <span className="section__label">{t('settings.transcription')}</span>
+            <span className="secondary">
+              {settings.stt.key.trim()
+                ? t('settings.connectedTo', { provider: sttProvider })
+                : t('settings.notConnected')}
+            </span>
+          </summary>
           <KeyField
             idPrefix="stt"
             keyLabel={t('settings.key')}
@@ -161,11 +174,18 @@ export default function Settings() {
             />
             <p className="secondary settings__why">{t('settings.vocabularyWhy')}</p>
           </div>
-        </section>
+        </details>
 
         {/* --------------------------------------------------------- 2 · Notes */}
-        <section className="section settings__section" data-section="notes">
-          <h2 className="section__label">{t('settings.notes')}</h2>
+        <details className="section settings__section settings__connection" data-section="notes" data-testid="llm-connection">
+          <summary className="settings__connection-summary">
+            <span className="section__label">{t('settings.notes')}</span>
+            <span className="secondary">
+              {settings.llm.key.trim()
+                ? t('settings.connectedTo', { provider: llmProvider })
+                : t('settings.notConnected')}
+            </span>
+          </summary>
           <KeyField
             idPrefix="llm"
             keyLabel={t('settings.key')}
@@ -177,10 +197,15 @@ export default function Settings() {
           />
           {/* §4.4: the one line that keeps "AI notes" from implying the model heard anything. */}
           <p className="settings__why secondary" data-testid="notes-why">{t('settings.notesWhy')}</p>
-        </section>
+        </details>
+
+          </section>
+
+          <section className="settings__group settings__local" data-testid="settings-local">
+            <h2 className="settings__group-title">{t('settings.onDevice')}</h2>
 
         {/* ------------------------------------------------------ 3 · Language */}
-        <section className="section settings__section" data-section="language">
+        <section className="settings__subsection" data-section="language">
           <h2 className="section__label">{t('settings.language')}</h2>
           <div className="settings__choice" role="radiogroup" aria-label={t('settings.language')}>
             {([['en', t('unit.langEn')], ['zh', t('unit.langZh')]] as const).map(([value, label]) => (
@@ -201,7 +226,7 @@ export default function Settings() {
         </section>
 
         {/* --------------------------------------------------------- 4 · Theme */}
-        <section className="section settings__section" data-section="theme">
+        <section className="settings__subsection" data-section="theme">
           <h2 className="section__label">{t('settings.theme')}</h2>
           <div className="settings__choice" role="radiogroup" aria-label={t('settings.theme')}>
             {([
@@ -226,7 +251,7 @@ export default function Settings() {
         </section>
 
         {/* ------------------------------------------------------- 5 · Storage */}
-        <section className="section settings__section" data-section="storage">
+        <section className="settings__subsection" data-section="storage">
           <h2 className="section__label">{t('settings.storage')}</h2>
 
           <p className="settings__line" data-testid="storage-line">
@@ -246,7 +271,7 @@ export default function Settings() {
             id="settings-keep"
             checked={settings.ui.keepAudio}
             onChange={(next) => setSettings({ ui: { keepAudio: next } })}
-            label={t('bring.keepAudio')}
+            label={t('settings.keepImportedAudio')}
             hint={t('bring.keepAudioWhy')}
           />
 
@@ -274,30 +299,38 @@ export default function Settings() {
           ) : null}
         </section>
 
-        {/* --------------------------------------------------------- 6 · About */}
-        <section className="section settings__section" data-section="about">
-          <h2 className="section__label">{t('settings.about')}</h2>
-          {/* Only the number is tabular — monospacing the word "Version" too
-              makes the About block look like a terminal. */}
-          <p className="settings__line">{t('app.version', { version: APP_VERSION })}</p>
-          <p className="settings__line">{t('settings.aboutLine')}</p>
-          {/* NASA must be acknowledged as the source; no NASA insignia is used. */}
-          <p className="settings__line secondary" data-testid="nasa-credit">{credit}</p>
+          </section>
+        </div>
 
-          {/* v3 B6 (§4.5): the starter library's attribution, verbatim from
-              each publisher's requested credit line (content/registry.mjs). */}
+        {/* --------------------------------------------------------- 6 · About */}
+        <section className="settings__privacy" data-testid="settings-privacy">
+          <p className="settings__privacy-kicker micro">{t('settings.privacyTitle')}</p>
+          <h2>{t('settings.privacyHeading')}</h2>
+          <p className="settings__line" data-testid="privacy-boundary">{t('settings.aboutLine')}</p>
+          <p className="settings__why secondary">{t('settings.privacyWhy')}</p>
+        </section>
+
+        <details className="settings__sources" data-testid="settings-sources">
+          <summary className="settings__sources-summary">
+            <span>{t('settings.contentCredits')}</span>
+            <span className="secondary">{starterManifest().entries.length + 1}</span>
+          </summary>
           <div className="settings__credits" data-testid="starter-credits">
-            <p className="settings__line">{t('settings.contentCredits')}</p>
+            <p className="settings__line secondary" data-testid="nasa-credit">{credit}</p>
             <ul className="settings__credit-list">
               {starterManifest().entries.map((e) => (
                 <li key={e.id} className="secondary">{e.credit}</li>
               ))}
             </ul>
           </div>
+        </details>
+
+        <footer className="settings__footer">
+          <p className="settings__line">{t('app.version', { version: APP_VERSION })}</p>
           <a className="settings__link" href={GITHUB_URL} target="_blank" rel="noreferrer noopener">
             {t('settings.github')}
           </a>
-        </section>
+        </footer>
       </main>
 
       <Toast message={toast.message} onDone={toast.clear} />
